@@ -177,6 +177,11 @@ class AdminApp {
                     await propietariosManager.loadPropietarios();
                 }
                 break;
+            case 'clientes':
+                if (typeof clientesManager !== 'undefined') {
+                    await clientesManager.loadClientes();
+                }
+                break;
             case 'perfil':
                 await this.loadProfile();
                 break;
@@ -290,6 +295,19 @@ function showSection(sectionId) {
 // Inicialización al cargar el DOM
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Admin panel loaded');
+    
+    // Inicializar managers cuando el usuario esté autenticado
+    if (auth.isAuthenticated()) {
+        // Inicializar PropietariosManager si existe la clase
+        if (typeof PropietariosManager !== 'undefined') {
+            window.propietariosManager = new PropietariosManager();
+        }
+        
+        // Inicializar ClientesManager si existe la clase
+        if (typeof ClientesManager !== 'undefined') {
+            window.clientesManager = new ClientesManager();
+        }
+    }
     
     // Mostrar sección inicial
     if (auth.isAuthenticated()) {

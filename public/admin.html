@@ -286,16 +286,73 @@
             </div>
         </section>
 
-        <!-- Otras secciones -->
+        <!-- Clientes Section -->
         <section id="clientes" class="content-section d-none">
             <div class="container-fluid">
-                <div class="row">
-                    <div class="col-12">
+                <div class="row mb-4">
+                    <div class="col-md-6">
                         <h1><i class="fas fa-user-friends"></i> Clientes</h1>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            Sección de clientes próximamente disponible. 
-                            Puedes usar los mismos patrones que propietarios para implementar esta funcionalidad.
+                        <p class="text-muted">Gestión de clientes interesados en propiedades</p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-primary" onclick="showNewClienteForm()">
+                            <i class="fas fa-plus"></i> Nuevo Cliente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="search-clientes" 
+                                   placeholder="Buscar por nombre, apellido, documento, celular o correo...">
+                            <button class="btn btn-outline-secondary" onclick="clientesManager.clearSearch()" 
+                                    title="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="searchClientes()"
+                                    title="Buscar">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> 
+                            Búsqueda en tiempo real activada. Presiona ESC para limpiar.
+                        </small>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary" onclick="loadClientes()">
+                            <i class="fas fa-sync"></i> Actualizar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de Clientes -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list"></i> Lista de Clientes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="clientes-loading" class="text-center">
+                            <div class="spinner-border" role="status"></div>
+                            <p>Cargando clientes...</p>
+                        </div>
+                        <div class="table-responsive" id="clientes-container" style="display: none;">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Nombre Completo</th>
+                                        <th>Celular</th>
+                                        <th>Correo</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clientes-table">
+                                    <!-- Datos se cargan dinámicamente -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -430,12 +487,82 @@
         </div>
     </div>
 
+    <!-- Cliente Modal -->
+    <div class="modal fade" id="clienteModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="clienteModalTitle">
+                        <i class="fas fa-user-plus"></i> Nuevo Cliente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="clienteForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="documento_cliente" class="form-label">
+                                        Documento <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="documento" name="documento" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="nombre_cliente" class="form-label">
+                                        Nombre <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="apellido_cliente" class="form-label">Apellido</label>
+                                    <input type="text" class="form-control" id="apellido" name="apellido" 
+                                           placeholder="Ej: González, Pérez">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cel_cliente" class="form-label">Celular</label>
+                                    <input type="tel" class="form-control" id="cel" name="cel" 
+                                           placeholder="Ej: 3001234567">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="correo_cliente" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="correo" name="correo" 
+                                   placeholder="Ej: cliente@email.com">
+                        </div>
+                        
+                        <div id="clienteError" class="alert alert-danger d-none"></div>
+                        <div id="clienteSuccess" class="alert alert-success d-none"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="clientesManager.saveCliente()">
+                        <i class="fas fa-save"></i> <span id="save-btn-text">Guardar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
     <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/propietarios.js"></script>
+    <script src="js/clientes.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>

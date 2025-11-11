@@ -1,5 +1,5 @@
 const propietariosRoutes = require('./propietarios');
-const clientesRoutes = require('./clientes');
+const clientesRoutes = require('./clienteRoutes');
 const propiedadesRoutes = require('./propiedades');
 const ventasRoutes = require('./ventas');
 const fotosRoutes = require('./fotos');

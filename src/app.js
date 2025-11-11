@@ -120,12 +120,26 @@ async function startServer() {
         await database.testConnection();
         console.log('✅ Conexión a la base de datos establecida');
 
-        // Iniciar el servidor
-        app.listen(PORT, () => {
+        // Crear servidor y manejar errores
+        const server = app.listen(PORT, () => {
             console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
             console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
             console.log(`🗄️  Base de datos: ${process.env.DB_NAME}`);
             console.log(`📁 Archivos estáticos: ${path.join(__dirname, '../public')}`);
+        });
+
+        // Manejar errores del servidor
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`❌ Error: El puerto ${PORT} ya está siendo utilizado.`);
+                console.log(`💡 Puedes:
+  1. Detener el proceso que usa el puerto: netstat -ano | findstr :${PORT}
+  2. Cambiar el puerto en las variables de entorno
+  3. Usar: taskkill /F /PID [PID_DEL_PROCESO]`);
+            } else {
+                console.error('❌ Error del servidor:', err.message);
+            }
+            process.exit(1);
         });
 
     } catch (error) {

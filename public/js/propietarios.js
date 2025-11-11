@@ -291,48 +291,113 @@ class PropietariosManager {
             
             if (response.success) {
                 const propietario = response.data;
+                const nombreCompleto = `${propietario.nombre} ${propietario.apellido1} ${propietario.apellido2 || ''}`.trim();
                 
-                // Crear modal de solo lectura
+                // Crear modal hermoso con el mismo diseño que clientes
                 const modalHTML = `
-                    <div class="modal fade" id="viewPropietarioModal" tabindex="-1">
-                        <div class="modal-dialog">
+                    <div class="modal fade" id="viewPropietarioModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title">
-                                        <i class="fas fa-user"></i> Detalles del Propietario
+                                        <i class="fas fa-user-tie"></i> Detalles del Propietario
                                     </h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <div class="row">
-                                        <div class="col-sm-4"><strong>Documento:</strong></div>
-                                        <div class="col-sm-8">${propietario.documento}</div>
+                                    <div class="text-center mb-4">
+                                        <div class="avatar-placeholder bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                             style="width: 80px; height: 80px; font-size: 2rem;">
+                                            <i class="fas fa-user-tie"></i>
+                                        </div>
+                                        <h4 class="mt-2 mb-0">${nombreCompleto}</h4>
+                                        <p class="text-muted">Propietario #${propietario.documento}</p>
                                     </div>
-                                    <hr>
+
                                     <div class="row">
-                                        <div class="col-sm-4"><strong>Nombre:</strong></div>
-                                        <div class="col-sm-8">${propietario.nombre} ${propietario.apellido1} ${propietario.apellido2 || ''}</div>
+                                        <div class="col-md-6">
+                                            <div class="card border-0 bg-light mb-3">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">
+                                                        <i class="fas fa-id-card text-primary"></i> Información Personal
+                                                    </h6>
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Documento:</small><br>
+                                                        <strong>${propietario.documento}</strong>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Nombre:</small><br>
+                                                        <strong>${propietario.nombre}</strong>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Primer Apellido:</small><br>
+                                                        <strong>${propietario.apellido1 || '<em class="text-muted">No especificado</em>'}</strong>
+                                                    </div>
+                                                    <div>
+                                                        <small class="text-muted">Segundo Apellido:</small><br>
+                                                        <strong>${propietario.apellido2 || '<em class="text-muted">No especificado</em>'}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card border-0 bg-light mb-3">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">
+                                                        <i class="fas fa-phone text-success"></i> Información de Contacto
+                                                    </h6>
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Teléfono Fijo:</small><br>
+                                                        ${propietario.tel ? 
+                                                            `<strong><i class="fas fa-phone"></i> <a href="tel:${propietario.tel}">${propietario.tel}</a></strong>` : 
+                                                            '<em class="text-muted">No especificado</em>'
+                                                        }
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Celular:</small><br>
+                                                        ${propietario.cel ? 
+                                                            `<strong><i class="fas fa-mobile-alt"></i> <a href="tel:${propietario.cel}">${propietario.cel}</a></strong>` : 
+                                                            '<em class="text-muted">No especificado</em>'
+                                                        }
+                                                    </div>
+                                                    <div>
+                                                        <small class="text-muted">Correo electrónico:</small><br>
+                                                        ${propietario.correo ? 
+                                                            `<strong><i class="fas fa-envelope"></i> <a href="mailto:${propietario.correo}">${propietario.correo}</a></strong>` : 
+                                                            '<em class="text-muted">No especificado</em>'
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <hr>
+                                    
                                     <div class="row">
-                                        <div class="col-sm-4"><strong>Teléfono:</strong></div>
-                                        <div class="col-sm-8">${propietario.tel || '-'}</div>
-                                    </div>
-                                    <hr>
-                                    <div class="row">
-                                        <div class="col-sm-4"><strong>Celular:</strong></div>
-                                        <div class="col-sm-8">${propietario.cel || '-'}</div>
-                                    </div>
-                                    <hr>
-                                    <div class="row">
-                                        <div class="col-sm-4"><strong>Email:</strong></div>
-                                        <div class="col-sm-8">${propietario.correo || '-'}</div>
+                                        <div class="col-12">
+                                            <div class="card border-0 bg-success bg-opacity-10 mb-3">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">
+                                                        <i class="fas fa-building text-success"></i> Información de Propietario
+                                                    </h6>
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-user-check text-success me-2"></i>
+                                                        <div>
+                                                            <small class="text-muted">Tipo:</small><br>
+                                                            <span class="badge bg-success fs-6">Propietario Registrado</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                                    <button type="button" class="btn btn-primary" onclick="propietariosManager.editPropietario('${propietario.documento}'); bootstrap.Modal.getInstance(document.getElementById('viewPropietarioModal')).hide();">
-                                        <i class="fas fa-edit"></i> Editar
+                                    <button type="button" class="btn btn-primary me-2" onclick="propietariosManager.editPropietario('${propietario.documento}'); bootstrap.Modal.getInstance(document.getElementById('viewPropietarioModal')).hide();">
+                                        <i class="fas fa-edit"></i> Editar Propietario
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" onclick="propietariosManager.deletePropietario('${propietario.documento}'); bootstrap.Modal.getInstance(document.getElementById('viewPropietarioModal')).hide();">
+                                        <i class="fas fa-trash"></i> Eliminar Propietario
                                     </button>
                                 </div>
                             </div>
@@ -351,27 +416,85 @@ class PropietariosManager {
                 Utils.showModal('viewPropietarioModal');
             }
         } catch (error) {
-            Utils.showError('Error al cargar propietario: ' + error.message);
+            Utils.showAlert('Error al cargar propietario: ' + error.message, 'danger');
         }
     }
 
     // Eliminar propietario
     async deletePropietario(documento) {
-        if (!confirm('¿Está seguro que desea eliminar este propietario?')) {
-            return;
-        }
-
         try {
-            const response = await api.deletePropietario(documento);
+            // Primero obtener información del propietario
+            const response = await api.getPropietario(documento);
             
-            if (response.success) {
-                showNotification('Propietario eliminado exitosamente', 'success');
+            if (!response.success || !response.data) {
+                throw new Error('No se pudo obtener la información del propietario');
+            }
+
+            const propietario = response.data;
+            const nombreCompleto = `${propietario.nombre} ${propietario.apellido1} ${propietario.apellido2 || ''}`.trim();
+            
+            // Mostrar confirmación con información detallada del propietario
+            const confirmed = await Utils.confirmDialog(
+                '⚠️ Confirmar Eliminación de Propietario',
+                `
+                <div class="text-center mb-3">
+                    <i class="fas fa-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
+                </div>
+                <p><strong>¿Está seguro que desea eliminar este propietario?</strong></p>
+                <div class="alert alert-info">
+                    <strong>Propietario:</strong> ${nombreCompleto}<br>
+                    <strong>Documento:</strong> ${propietario.documento}<br>
+                    ${propietario.cel ? `<strong>Celular:</strong> ${propietario.cel}<br>` : ''}
+                    ${propietario.tel ? `<strong>Teléfono:</strong> ${propietario.tel}<br>` : ''}
+                    ${propietario.correo ? `<strong>Correo:</strong> ${propietario.correo}` : ''}
+                </div>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Importante:</strong> Se verificará automáticamente si el propietario tiene propiedades asociadas.
+                </div>
+                <p class="text-danger">
+                    <small>
+                        <i class="fas fa-exclamation-circle"></i> 
+                        Esta acción no se puede deshacer y eliminará permanentemente toda la información del propietario.
+                    </small>
+                </p>
+                `,
+                'Sí, eliminar propietario',
+                'Cancelar'
+            );
+
+            if (!confirmed) return;
+
+            // Proceder con la eliminación
+            const deleteResponse = await api.deletePropietario(documento);
+            
+            if (deleteResponse.success) {
+                Utils.showAlert('Propietario eliminado exitosamente', 'success');
+                // Cerrar modal si está abierto
+                const modal = document.getElementById('viewPropietarioModal');
+                if (modal) {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) modalInstance.hide();
+                }
+                // Recargar la lista
                 await this.loadPropietarios();
             } else {
-                throw new Error(response.message || 'Error al eliminar propietario');
+                throw new Error(deleteResponse.message || 'Error al eliminar propietario');
             }
+
         } catch (error) {
-            Utils.showError('Error al eliminar propietario: ' + error.message);
+            console.error('Error en deletePropietario:', error);
+            
+            // Manejar errores específicos
+            let errorMessage = error.message;
+            if (error.message.includes('propiedades asociadas')) {
+                errorMessage = 'No se puede eliminar el propietario porque tiene propiedades registradas a su nombre. Debe transferir o eliminar las propiedades primero.';
+            } else if (error.message.includes('registros asociados') || 
+                       error.message.includes('foreign key constraint')) {
+                errorMessage = 'No se puede eliminar el propietario porque tiene registros asociados en el sistema.';
+            }
+            
+            Utils.showAlert(`Error al eliminar propietario: ${errorMessage}`, 'danger');
         }
     }
 

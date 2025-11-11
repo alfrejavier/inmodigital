@@ -1,24 +1,26 @@
-const { cliente } = require('../models');
+const Cliente = require('../models/Cliente');
+const cliente = new Cliente();
 
-/**
- * Controlador para la gestión de clientes
- */
 class ClienteController {
-
     /**
-     * Obtener todos los clientes
+     * Obtener todos los clientes o buscar por término
      */
     async obtenerTodos(req, res) {
         try {
-            const { page = 1, limit = 10, buscar } = req.query;
-            
+            const { search, buscar, page = 1, limit = 50 } = req.query;
+            const searchTerm = search || buscar;
+
             let clientes;
-            
-            if (buscar) {
-                clientes = await cliente.buscarPorNombre(buscar);
+
+            if (searchTerm && searchTerm.trim()) {
+                // Búsqueda por término
+                clientes = await cliente.buscarPorNombre(searchTerm.trim(), parseInt(limit));
             } else {
-                const offset = (page - 1) * limit;
-                clientes = await cliente.findAll({}, 'nombre ASC', limit);
+                // Obtener todos los clientes
+                clientes = await cliente.obtenerTodos({ 
+                    limite: parseInt(limit), 
+                    pagina: parseInt(page) 
+                });
             }
 
             res.json({
@@ -42,28 +44,29 @@ class ClienteController {
     /**
      * Obtener un cliente por documento
      */
-    async obtenerPorDocumento(req, res) {
+    async obtenerPorId(req, res) {
         try {
             const { documento } = req.params;
-            
-            const clienteEncontrado = await cliente.findById(parseInt(documento));
-            
-            if (!clienteEncontrado) {
-                return res.status(404).json({
+
+            if (!documento) {
+                return res.status(400).json({
                     success: false,
-                    message: `No se encontró cliente con documento ${documento}`
+                    message: 'El documento es requerido'
                 });
             }
 
-            // Obtener historial de compras del cliente
-            const compras = await cliente.obtenerCompras(parseInt(documento));
-            
+            const clienteEncontrado = await cliente.obtenerPorId(documento);
+
+            if (!clienteEncontrado) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Cliente no encontrado'
+                });
+            }
+
             res.json({
                 success: true,
-                data: {
-                    ...clienteEncontrado,
-                    compras
-                }
+                data: clienteEncontrado
             });
 
         } catch (error) {
@@ -81,8 +84,21 @@ class ClienteController {
      */
     async crear(req, res) {
         try {
-            const nuevoCliente = await cliente.crear(req.body);
-            
+            const datosCliente = req.body;
+
+            // Debug: Ver qué datos están llegando
+            console.log('📝 Datos recibidos en crear cliente:', JSON.stringify(datosCliente, null, 2));
+
+            // Validar que se envíen datos
+            if (!datosCliente || Object.keys(datosCliente).length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'No se enviaron datos del cliente'
+                });
+            }
+
+            const nuevoCliente = await cliente.crear(datosCliente);
+
             res.status(201).json({
                 success: true,
                 message: 'Cliente creado exitosamente',
@@ -92,11 +108,9 @@ class ClienteController {
         } catch (error) {
             console.error('Error al crear cliente:', error);
             
-            // Manejar errores de validación
-            if (error.message.includes('requerido') || 
-                error.message.includes('Ya existe') ||
-                error.message.includes('debe ser') ||
-                error.message.includes('formato')) {
+            // Error de validación
+            if (error.message.includes('Errores de validación') || 
+                error.message.includes('Ya existe un cliente')) {
                 return res.status(400).json({
                     success: false,
                     message: error.message
@@ -117,9 +131,27 @@ class ClienteController {
     async actualizar(req, res) {
         try {
             const { documento } = req.params;
-            
-            const clienteActualizado = await cliente.actualizar(parseInt(documento), req.body);
-            
+            const datosActualizacion = req.body;
+
+            // Debug: Ver qué datos están llegando para actualizar
+            console.log(`📝 Datos recibidos en actualizar cliente ${documento}:`, JSON.stringify(datosActualizacion, null, 2));
+
+            if (!documento) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'El documento es requerido'
+                });
+            }
+
+            if (!datosActualizacion || Object.keys(datosActualizacion).length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'No se enviaron datos para actualizar'
+                });
+            }
+
+            const clienteActualizado = await cliente.actualizar(documento, datosActualizacion);
+
             res.json({
                 success: true,
                 message: 'Cliente actualizado exitosamente',
@@ -128,17 +160,15 @@ class ClienteController {
 
         } catch (error) {
             console.error('Error al actualizar cliente:', error);
-            
-            if (error.message.includes('No se encontró')) {
+
+            if (error.message.includes('Cliente no encontrado')) {
                 return res.status(404).json({
                     success: false,
                     message: error.message
                 });
             }
 
-            if (error.message.includes('requerido') || 
-                error.message.includes('debe ser') ||
-                error.message.includes('formato')) {
+            if (error.message.includes('Errores de validación')) {
                 return res.status(400).json({
                     success: false,
                     message: error.message
@@ -159,25 +189,24 @@ class ClienteController {
     async eliminar(req, res) {
         try {
             const { documento } = req.params;
-            
-            // Verificar que no tenga compras asociadas
-            const compras = await cliente.obtenerCompras(parseInt(documento));
-            
-            if (compras.length > 0) {
+
+            if (!documento) {
                 return res.status(400).json({
                     success: false,
-                    message: 'No se puede eliminar el cliente porque tiene compras asociadas'
+                    message: 'El documento es requerido'
                 });
             }
 
-            const eliminado = await cliente.delete(parseInt(documento));
-            
-            if (!eliminado) {
+            // Verificar que el cliente existe
+            const clienteExistente = await cliente.obtenerPorId(documento);
+            if (!clienteExistente) {
                 return res.status(404).json({
                     success: false,
-                    message: `No se encontró cliente con documento ${documento}`
+                    message: 'Cliente no encontrado'
                 });
             }
+
+            await cliente.eliminarPorId(documento);
 
             res.json({
                 success: true,
@@ -186,37 +215,16 @@ class ClienteController {
 
         } catch (error) {
             console.error('Error al eliminar cliente:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Buscar cliente por celular
-     */
-    async buscarPorCelular(req, res) {
-        try {
-            const { celular } = req.params;
             
-            const clienteEncontrado = await cliente.buscarPorCelular(celular);
-            
-            if (!clienteEncontrado) {
-                return res.status(404).json({
+            // Error de restricción de clave foránea
+            if (error.message.includes('foreign key constraint') || 
+                error.code === 'ER_ROW_IS_REFERENCED_2') {
+                return res.status(400).json({
                     success: false,
-                    message: `No se encontró cliente con celular ${celular}`
+                    message: 'No se puede eliminar el cliente porque tiene registros asociados'
                 });
             }
 
-            res.json({
-                success: true,
-                data: clienteEncontrado
-            });
-
-        } catch (error) {
-            console.error('Error al buscar cliente por celular:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',
@@ -226,20 +234,30 @@ class ClienteController {
     }
 
     /**
-     * Obtener clientes interesados (con ventas pendientes)
+     * Buscar clientes por término específico
      */
-    async obtenerInteresados(req, res) {
+    async buscar(req, res) {
         try {
-            const clientesInteresados = await cliente.obtenerClientesInteresados();
-            
+            const { termino } = req.query;
+
+            if (!termino || termino.trim() === '') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'El término de búsqueda es requerido'
+                });
+            }
+
+            const resultados = await cliente.buscarPorNombre(termino.trim());
+
             res.json({
                 success: true,
-                data: clientesInteresados,
-                total: clientesInteresados.length
+                data: resultados,
+                total: resultados.length,
+                termino: termino.trim()
             });
 
         } catch (error) {
-            console.error('Error al obtener clientes interesados:', error);
+            console.error('Error al buscar clientes:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',
@@ -249,23 +267,12 @@ class ClienteController {
     }
 
     /**
-     * Obtener estadísticas de un cliente
+     * Obtener estadísticas generales de clientes
      */
     async obtenerEstadisticas(req, res) {
         try {
-            const { documento } = req.params;
-            
-            // Verificar que el cliente existe
-            const clienteExiste = await cliente.findById(parseInt(documento));
-            if (!clienteExiste) {
-                return res.status(404).json({
-                    success: false,
-                    message: `No se encontró cliente con documento ${documento}`
-                });
-            }
+            const estadisticas = await cliente.obtenerEstadisticas();
 
-            const estadisticas = await cliente.obtenerEstadisticas(parseInt(documento));
-            
             res.json({
                 success: true,
                 data: estadisticas
@@ -282,31 +289,53 @@ class ClienteController {
     }
 
     /**
-     * Obtener historial completo de un cliente
+     * Obtener clientes por ciudad
      */
-    async obtenerHistorial(req, res) {
+    async obtenerPorCiudad(req, res) {
         try {
-            const { documento } = req.params;
-            
-            // Verificar que el cliente existe
-            const clienteExiste = await cliente.findById(parseInt(documento));
-            if (!clienteExiste) {
-                return res.status(404).json({
+            const { ciudad } = req.params;
+            const { limit = 20 } = req.query;
+
+            if (!ciudad) {
+                return res.status(400).json({
                     success: false,
-                    message: `No se encontró cliente con documento ${documento}`
+                    message: 'La ciudad es requerida'
                 });
             }
 
-            const historial = await cliente.obtenerHistorial(parseInt(documento));
-            
+            const clientesCiudad = await cliente.obtenerPorCiudad(ciudad, parseInt(limit));
+
             res.json({
                 success: true,
-                data: historial,
-                total: historial.length
+                data: clientesCiudad,
+                ciudad: ciudad,
+                total: clientesCiudad.length
             });
 
         } catch (error) {
-            console.error('Error al obtener historial:', error);
+            console.error('Error al obtener clientes por ciudad:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Obtener lista de ciudades con clientes
+     */
+    async obtenerCiudades(req, res) {
+        try {
+            const ciudades = await cliente.obtenerCiudades();
+
+            res.json({
+                success: true,
+                data: ciudades
+            });
+
+        } catch (error) {
+            console.error('Error al obtener ciudades:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',

@@ -143,6 +143,22 @@ class ApiService {
         return this.get(endpoint);
     }
 
+    async getCliente(documento) {
+        return this.get(`/clientes/${documento}`);
+    }
+
+    async createCliente(data) {
+        return this.post('/clientes', data);
+    }
+
+    async updateCliente(documento, data) {
+        return this.put(`/clientes/${documento}`, data);
+    }
+
+    async deleteCliente(documento) {
+        return this.delete(`/clientes/${documento}`);
+    }
+
     // Métodos de propiedades
     async getPropiedades(filters = {}) {
         let endpoint = '/propiedades';
