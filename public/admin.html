@@ -5,8 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración - InmoDigital</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="css/admin.css" rel="stylesheet">
+    <link href="css/sweetalert2-dark.css" rel="stylesheet">
+    <style>
+        .swal-wide {
+            width: 90% !important;
+            max-width: 900px !important;
+        }
+        
+        #galeriaFotos img {
+            transition: transform 0.2s;
+        }
+        
+        #galeriaFotos img:hover {
+            transform: scale(1.05);
+        }
+    </style>
 </head>
 <body>
     <!-- Header -->
@@ -361,13 +376,93 @@
 
         <section id="propiedades" class="content-section d-none">
             <div class="container-fluid">
-                <div class="row">
-                    <div class="col-12">
+                <div class="row mb-3">
+                    <div class="col-md-8">
                         <h1><i class="fas fa-building"></i> Propiedades</h1>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            Sección de propiedades próximamente disponible.
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-primary" onclick="abrirModalPropiedad()">
+                            <i class="fas fa-plus"></i> Nueva Propiedad
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Tipo de Propiedad:</label>
+                                <select class="form-select" id="filtroTipoPropiedad" onchange="cargarPropiedades()">
+                                    <option value="">Todos</option>
+                                    <option value="casa">Casa</option>
+                                    <option value="apartamento">Apartamento</option>
+                                    <option value="oficina">Oficina</option>
+                                    <option value="local">Local</option>
+                                    <option value="lote">Lote</option>
+                                    <option value="finca">Finca</option>
+                                    <option value="bodega">Bodega</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Ciudad:</label>
+                                <input type="text" class="form-control" id="filtroCiudad" 
+                                       placeholder="Ej: Bogotá" onchange="cargarPropiedades()">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Disponibilidad:</label>
+                                <select class="form-select" id="filtroDisponibilidad" onchange="cargarPropiedades()">
+                                    <option value="">Todas</option>
+                                    <option value="disponible">Disponible</option>
+                                    <option value="vendida">Vendida</option>
+                                    <option value="alquilada">Alquilada</option>
+                                    <option value="reservada">Reservada</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-secondary w-100" onclick="limpiarFiltrosPropiedades()">
+                                    <i class="fas fa-eraser"></i> Limpiar Filtros
+                                </button>
+                            </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Propiedades -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tipo</th>
+                                        <th>Ubicación</th>
+                                        <th>Tamaño</th>
+                                        <th>Precio</th>
+                                        <th>Disponibilidad</th>
+                                        <th>Propietario</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPropiedades">
+                                    <tr>
+                                        <td colspan="8" class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Cargando...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Paginación -->
+                        <nav>
+                            <ul class="pagination justify-content-center" id="paginacionPropiedades">
+                            </ul>
+                        </nav>
                     </div>
                 </div>
             </div>
@@ -375,12 +470,66 @@
 
         <section id="ventas" class="content-section d-none">
             <div class="container-fluid">
+                <div class="row mb-4">
+                    <div class="col-12 d-flex justify-content-between align-items-center">
+                        <h1><i class="fas fa-handshake"></i> Ventas</h1>
+                        <button class="btn btn-primary" onclick="nuevaVenta()">
+                            <i class="fas fa-plus"></i> Nueva Venta
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <select class="form-select" id="filtroEstado" onchange="cargarVentas()">
+                            <option value="">Todos los estados</option>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="en_proceso">En Proceso</option>
+                            <option value="completada">Completada</option>
+                            <option value="cancelada">Cancelada</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="date" class="form-control" id="filtroFecha" onchange="cargarVentas()">
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-secondary" onclick="limpiarFiltrosVentas()">
+                            <i class="fas fa-times"></i> Limpiar Filtros
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla de ventas -->
                 <div class="row">
                     <div class="col-12">
-                        <h1><i class="fas fa-handshake"></i> Ventas</h1>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            Sección de ventas próximamente disponible.
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Fecha</th>
+                                                <th>Propiedad</th>
+                                                <th>Cliente</th>
+                                                <th>Valor</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tablaVentas">
+                                            <tr>
+                                                <td colspan="7" class="text-center">
+                                                    <div class="spinner-border" role="status">
+                                                        <span class="visually-hidden">Cargando...</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -487,6 +636,144 @@
         </div>
     </div>
 
+    <!-- Propiedad Modal -->
+    <div class="modal fade" id="propiedadModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="propiedadModalTitle">
+                        <i class="fas fa-home"></i> Nueva Propiedad
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="propiedadForm">
+                        <input type="hidden" id="propiedad_id" name="id">
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="tipo_propiedad" class="form-label">
+                                        Tipo de Propiedad <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="tipo_propiedad" name="tipo_propiedad" required>
+                                        <option value="">Seleccione...</option>
+                                        <option value="apartamento">Apartamento</option>
+                                        <option value="casa">Casa</option>
+                                        <option value="local">Local Comercial</option>
+                                        <option value="oficina">Oficina</option>
+                                        <option value="lote">Lote</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="depto" class="form-label">
+                                        Departamento <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="depto" name="depto" 
+                                           placeholder="Ej: Antioquia" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="ciudad" class="form-label">
+                                        Ciudad <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="ciudad" name="ciudad" 
+                                           placeholder="Ej: Medellín" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ubicacion" class="form-label">
+                                Ubicación/Dirección <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="ubicacion" name="ubicacion" 
+                                   placeholder="Ej: Calle 10 # 20-30, Barrio El Poblado" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="tamano" class="form-label">
+                                        Tamaño (m²) <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" class="form-control" id="tamano" name="tamano" 
+                                           min="1" step="0.01" placeholder="Ej: 80.50" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="precio" class="form-label">
+                                        Precio <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" class="form-control" id="precio" name="precio" 
+                                           min="0" step="0.01" placeholder="Ej: 250000000" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="propietarios_documento" class="form-label">
+                                        Propietario <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="propietarios_documento" name="propietarios_documento" required>
+                                        <option value="">Cargando...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="caracteristicas" class="form-label">Características</label>
+                            <textarea class="form-control" id="caracteristicas" name="caracteristicas" 
+                                      rows="3" placeholder="Descripción general de características..."></textarea>
+                            <small class="text-muted">Opcional: descripción general de la propiedad</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="disponibilidad" class="form-label">
+                                        Disponibilidad <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="disponibilidad" name="disponibilidad" required>
+                                        <option value="venta">Venta</option>
+                                        <option value="arriendo">Arriendo</option>
+                                        <option value="venta/arriendo">Venta/Arriendo</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="estado" class="form-label">
+                                        Estado físico <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="estado" name="estado" required>
+                                        <option value="excelente">Excelente</option>
+                                        <option value="bueno" selected>Bueno</option>
+                                        <option value="regular">Regular</option>
+                                        <option value="necesita_reparacion">Necesita reparación</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="propiedadError" class="alert alert-danger d-none"></div>
+                        <div id="propiedadSuccess" class="alert alert-success d-none"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarPropiedad()">
+                        <i class="fas fa-save"></i> <span id="propiedad-save-btn-text">Guardar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Cliente Modal -->
     <div class="modal fade" id="clienteModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -555,14 +842,109 @@
         </div>
     </div>
 
+    <!-- Venta Modal -->
+    <div class="modal fade" id="ventaModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span id="venta-modal-title">Nueva Venta/Arriendo</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="ventaForm">
+                        <input type="hidden" id="idventas" name="idventas">
+                        
+                        <div class="row">
+                            <!-- Propiedad -->
+                            <div class="col-md-6 mb-3">
+                                <label for="propiedades_id" class="form-label">
+                                    <i class="fas fa-home"></i> Propiedad <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="propiedades_id" name="propiedades_id" required>
+                                    <option value="">Seleccione una propiedad...</option>
+                                </select>
+                                <small class="text-muted">Solo propiedades disponibles para venta/arriendo</small>
+                            </div>
+
+                            <!-- Cliente -->
+                            <div class="col-md-6 mb-3">
+                                <label for="clientes_documento" class="form-label">
+                                    <i class="fas fa-user"></i> Cliente <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="clientes_documento" name="clientes_documento" required>
+                                    <option value="">Seleccione un cliente...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Fecha -->
+                            <div class="col-md-4 mb-3">
+                                <label for="fecha" class="form-label">
+                                    <i class="fas fa-calendar"></i> Fecha <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" id="fecha" name="fecha" required>
+                            </div>
+
+                            <!-- Valor -->
+                            <div class="col-md-4 mb-3">
+                                <label for="valorventa" class="form-label">
+                                    <i class="fas fa-dollar-sign"></i> Valor <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="valorventa" name="valorventa" 
+                                       min="0" step="1000" required placeholder="Ej: 150000000">
+                                <small class="text-muted">Valor en pesos colombianos</small>
+                            </div>
+
+                            <!-- Estado -->
+                            <div class="col-md-4 mb-3">
+                                <label for="estadoVenta" class="form-label">
+                                    <i class="fas fa-info-circle"></i> Estado <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="estadoVenta" name="estado" required>
+                                    <option value="pendiente">Pendiente - Iniciando proceso</option>
+                                    <option value="en_proceso">En Proceso - Documentación en trámite</option>
+                                    <option value="completada">Completada - Venta finalizada</option>
+                                    <option value="cancelada">Cancelada - Operación cancelada</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Nota:</strong> Al completar una venta, la propiedad cambiará automáticamente a estado "Vendida" 
+                            y no estará disponible para nuevas transacciones.
+                        </div>
+                        
+                        <div id="ventaError" class="alert alert-danger d-none"></div>
+                        <div id="ventaSuccess" class="alert alert-success d-none"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarVenta()">
+                        <i class="fas fa-save"></i> <span id="venta-save-btn-text">Guardar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="js/sweetalert2.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/propietarios.js"></script>
     <script src="js/clientes.js"></script>
+    <script src="js/propiedades.js"></script>
+    <script src="js/fotos.js"></script>
+    <script src="js/ventas.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>

@@ -1,6 +1,45 @@
-const { foto } = require('../models');
+const Foto = require('../models/Foto');
+const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+
+// Configuración de Multer
+const storage = multer.diskStorage({
+    destination: async (req, file, cb) => {
+        const propiedadId = req.params.propiedadId || req.params.id;
+        const uploadPath = path.join(__dirname, '../../public/uploads/propiedades', propiedadId.toString());
+        
+        try {
+            await fs.mkdir(uploadPath, { recursive: true });
+            cb(null, uploadPath);
+        } catch (error) {
+            cb(error);
+        }
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `foto-${uniqueSuffix}${ext}`);
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Tipo de archivo no permitido. Solo se aceptan imágenes JPG, PNG y WEBP'), false);
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB máximo
+    }
+});
 
 /**
  * Controlador para la gestión de fotos
@@ -8,24 +47,25 @@ const fs = require('fs').promises;
 class FotoController {
 
     /**
+     * Middleware de multer para subir fotos
+     */
+    static get uploadMiddleware() {
+        return upload.array('fotos', 10); // Máximo 10 fotos a la vez
+    }
+
+    /**
      * Obtener todas las fotos de una propiedad
      */
-    async obtenerPorPropiedad(req, res) {
+    static async obtenerPorPropiedad(req, res) {
         try {
             const { propiedadId } = req.params;
             
-            const fotos = await foto.obtenerPorPropiedad(parseInt(propiedadId));
+            const fotos = await Foto.obtenerPorPropiedad(parseInt(propiedadId));
             
-            // Agregar URL completa a cada foto
-            const fotosConUrl = fotos.map(f => ({
-                ...f,
-                url: `${process.env.BASE_URL || 'http://localhost:3000'}/images/propiedades/${path.basename(f.ruta)}`
-            }));
-
             res.json({
                 success: true,
-                data: fotosConUrl,
-                total: fotosConUrl.length
+                data: fotos,
+                total: fotos.length
             });
 
         } catch (error) {
@@ -39,123 +79,57 @@ class FotoController {
     }
 
     /**
-     * Obtener una foto por ID
+     * Subir fotos de una propiedad
      */
-    async obtenerPorId(req, res) {
+    static async subir(req, res) {
         try {
-            const { id } = req.params;
-            
-            const fotoEncontrada = await foto.findById(parseInt(id));
-            
-            if (!fotoEncontrada) {
-                return res.status(404).json({
+            const { propiedadId } = req.params;
+
+            if (!req.files || req.files.length === 0) {
+                return res.status(400).json({
                     success: false,
-                    message: `No se encontró foto con ID ${id}`
+                    message: 'No se enviaron archivos'
                 });
             }
 
-            // Agregar URL completa
-            fotoEncontrada.url = `${process.env.BASE_URL || 'http://localhost:3000'}/images/propiedades/${path.basename(fotoEncontrada.ruta)}`;
+            const fotosCreadas = [];
+            
+            for (const file of req.files) {
+                const rutaRelativa = `/uploads/propiedades/${propiedadId}/${file.filename}`;
+                
+                const fotoData = {
+                    ruta: rutaRelativa,
+                    propiedades_id: parseInt(propiedadId)
+                };
+
+                const fotoCreada = await Foto.crear(fotoData);
+                fotosCreadas.push({
+                    id: fotoCreada.id,
+                    ruta: rutaRelativa,
+                    propiedades_id: parseInt(propiedadId)
+                });
+            }
 
             res.json({
                 success: true,
-                data: fotoEncontrada
+                message: `${fotosCreadas.length} foto(s) subida(s) exitosamente`,
+                data: fotosCreadas
             });
 
         } catch (error) {
-            console.error('Error al obtener foto:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Subir una nueva foto
-     */
-    async subir(req, res) {
-        try {
-            const { propiedadId } = req.params;
+            console.error('Error al subir fotos:', error);
             
-            if (!req.file) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'No se proporcionó ningún archivo'
-                });
-            }
-
-            // Crear datos para la nueva foto
-            const datosFoto = {
-                ruta: req.file.path,
-                propiedades_id: parseInt(propiedadId)
-            };
-
-            const nuevaFoto = await foto.crear(datosFoto);
-            
-            // Agregar URL completa
-            nuevaFoto.url = `${process.env.BASE_URL || 'http://localhost:3000'}/images/propiedades/${req.file.filename}`;
-
-            res.status(201).json({
-                success: true,
-                message: 'Foto subida exitosamente',
-                data: nuevaFoto
-            });
-
-        } catch (error) {
-            console.error('Error al subir foto:', error);
-            
-            // Si hay error, eliminar el archivo subido
-            if (req.file && req.file.path) {
-                try {
-                    await fs.unlink(req.file.path);
-                } catch (unlinkError) {
-                    console.error('Error al eliminar archivo:', unlinkError);
+            // Si hay error, eliminar archivos subidos
+            if (req.files) {
+                for (const file of req.files) {
+                    try {
+                        await fs.unlink(file.path);
+                    } catch (unlinkError) {
+                        console.error('Error al eliminar archivo:', unlinkError);
+                    }
                 }
             }
 
-            if (error.message.includes('requerido') || 
-                error.message.includes('No existe') ||
-                error.message.includes('debe ser')) {
-                return res.status(400).json({
-                    success: false,
-                    message: error.message
-                });
-            }
-
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Actualizar información de una foto
-     */
-    async actualizar(req, res) {
-        try {
-            const { id } = req.params;
-            
-            const fotoActualizada = await foto.update(parseInt(id), req.body);
-            
-            if (!fotoActualizada) {
-                return res.status(404).json({
-                    success: false,
-                    message: `No se encontró foto con ID ${id}`
-                });
-            }
-
-            res.json({
-                success: true,
-                message: 'Foto actualizada exitosamente',
-                data: fotoActualizada
-            });
-
-        } catch (error) {
-            console.error('Error al actualizar foto:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',
@@ -167,11 +141,11 @@ class FotoController {
     /**
      * Eliminar una foto
      */
-    async eliminar(req, res) {
+    static async eliminar(req, res) {
         try {
             const { id } = req.params;
             
-            const eliminada = await foto.eliminarFoto(parseInt(id));
+            const eliminada = await Foto.eliminar(parseInt(id));
             
             if (!eliminada) {
                 return res.status(404).json({
@@ -198,76 +172,20 @@ class FotoController {
     /**
      * Eliminar todas las fotos de una propiedad
      */
-    async eliminarPorPropiedad(req, res) {
+    static async eliminarPorPropiedad(req, res) {
         try {
             const { propiedadId } = req.params;
             
-            const cantidadEliminada = await foto.eliminarPorPropiedad(parseInt(propiedadId));
+            const cantidadEliminada = await Foto.eliminarPorPropiedad(parseInt(propiedadId));
             
             res.json({
                 success: true,
-                message: `Se eliminaron ${cantidadEliminada} fotos de la propiedad`,
-                cantidad_eliminada: cantidadEliminada
+                message: `${cantidadEliminada} foto(s) eliminada(s) exitosamente`,
+                cantidadEliminada
             });
 
         } catch (error) {
-            console.error('Error al eliminar fotos de propiedad:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Obtener la foto principal de una propiedad
-     */
-    async obtenerPrincipal(req, res) {
-        try {
-            const { propiedadId } = req.params;
-            
-            const fotoPrincipal = await foto.obtenerPrincipal(parseInt(propiedadId));
-            
-            if (!fotoPrincipal) {
-                return res.status(404).json({
-                    success: false,
-                    message: `No se encontraron fotos para la propiedad ${propiedadId}`
-                });
-            }
-
-            // Agregar URL completa
-            fotoPrincipal.url = `${process.env.BASE_URL || 'http://localhost:3000'}/images/propiedades/${path.basename(fotoPrincipal.ruta)}`;
-
-            res.json({
-                success: true,
-                data: fotoPrincipal
-            });
-
-        } catch (error) {
-            console.error('Error al obtener foto principal:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Obtener estadísticas de fotos
-     */
-    async obtenerEstadisticas(req, res) {
-        try {
-            const estadisticas = await foto.obtenerEstadisticas();
-            
-            res.json({
-                success: true,
-                data: estadisticas
-            });
-
-        } catch (error) {
-            console.error('Error al obtener estadísticas de fotos:', error);
+            console.error('Error al eliminar fotos:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',
@@ -277,4 +195,4 @@ class FotoController {
     }
 }
 
-module.exports = new FotoController();
+module.exports = FotoController;

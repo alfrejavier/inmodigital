@@ -458,6 +458,7 @@ class ClientesManager {
      * Eliminar cliente
      */
     async deleteCliente(documento) {
+        console.log('🗑️ deleteCliente llamado con documento:', documento);
         try {
             // Obtener información del cliente para mostrar en el diálogo
             const clienteResponse = await api.getCliente(documento);
@@ -470,7 +471,9 @@ class ClientesManager {
             const nombreCompleto = `${cliente.nombre} ${cliente.apellido || ''}`.trim();
             
             // Mostrar confirmación con información detallada del cliente
-            const confirmed = await Utils.confirmDialog(
+            let confirmed = false;
+            if (typeof Utils !== 'undefined' && Utils.confirmDialog) {
+                confirmed = await Utils.confirmDialog(
                 '⚠️ Confirmar Eliminación de Cliente',
                 `
                 <div class="text-center mb-3">
@@ -492,7 +495,10 @@ class ClientesManager {
                 `,
                 'Sí, eliminar cliente',
                 'Cancelar'
-            );
+                );
+            } else {
+                confirmed = confirm('¿Está seguro que desea eliminar este cliente?');
+            }
 
             if (!confirmed) return;
 
@@ -500,7 +506,11 @@ class ClientesManager {
             const response = await api.deleteCliente(documento);
             
             if (response.success) {
-                Utils.showAlert('Cliente eliminado exitosamente', 'success');
+                if (typeof Utils !== 'undefined' && Utils.showAlert) {
+                    Utils.showAlert('Cliente eliminado exitosamente', 'success');
+                } else {
+                    alert('Cliente eliminado exitosamente');
+                }
                 // Cerrar modal si está abierto
                 const modal = document.getElementById('viewClienteModal');
                 if (modal) {
@@ -523,7 +533,11 @@ class ClientesManager {
                 errorMessage = 'No se puede eliminar el cliente porque tiene registros asociados (ventas, propiedades, etc.)';
             }
             
-            Utils.showAlert(`Error al eliminar cliente: ${errorMessage}`, 'danger');
+            if (typeof Utils !== 'undefined' && Utils.showAlert) {
+                Utils.showAlert(`Error al eliminar cliente: ${errorMessage}`, 'danger');
+            } else {
+                alert(`Error al eliminar cliente: ${errorMessage}`);
+            }
         }
     }
 
@@ -736,4 +750,8 @@ function loadClientes() {
 }
 
 // Instancia global
-window.clientesManager = null;
+const clientesManager = new ClientesManager();
+console.log('✅ ClientesManager inicializado:', clientesManager);
+
+// También disponible globalmente para onclick
+window.clientesManager = clientesManager;

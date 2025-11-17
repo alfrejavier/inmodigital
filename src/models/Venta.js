@@ -1,4 +1,5 @@
 const BaseModel = require('./BaseModel');
+const database = require('../config/database');
 
 /**
  * Modelo para la tabla ventas
@@ -9,200 +10,133 @@ class Venta extends BaseModel {
     }
 
     /**
-     * Crear una nueva venta
+     * Crear una nueva venta (método estático)
      */
-    async crear(data) {
+    static async crear(data) {
+        const instancia = new Venta();
+        
         // Validar datos requeridos
-        this.validarDatosRequeridos(data);
+        instancia.validarDatosRequeridos(data);
         
         // Verificar que la propiedad exista y esté disponible
-        await this.verificarPropiedad(data.propiedades_id);
+        await instancia.verificarPropiedad(data.propiedades_id);
         
         // Verificar que el cliente exista
-        await this.verificarCliente(data.clientes_documento);
+        await instancia.verificarCliente(data.clientes_documento);
 
         // Crear la venta
-        const venta = await this.create(data);
+        const venta = await instancia.create(data);
 
         // Si la venta se completó, cambiar el estado de la propiedad
         if (data.estado === 'completada') {
-            await this.cambiarEstadoPropiedad(data.propiedades_id, 'vendida');
+            await instancia.cambiarEstadoPropiedad(data.propiedades_id, 'vendida');
         }
 
         return venta;
     }
 
     /**
-     * Actualizar venta
+     * Obtener todas las ventas con detalles (método estático)
      */
-    async actualizar(id, data) {
-        const venta = await this.findById(id);
+    static async obtenerConDetalles(id = null) {
+        try {
+            let sql = `
+                SELECT 
+                    v.*,
+                    p.tipo as tipo_propiedad,
+                    p.ubicacion,
+                    p.ciudad,
+                    p.depto,
+                    p.precio as precio_propiedad,
+                    c.nombre as nombre_cliente,
+                    c.apellido as apellido_cliente,
+                    c.cel as cliente_cel,
+                    prop.nombre as propietario_nombre,
+                    prop.cel as propietario_cel
+                FROM ventas v
+                INNER JOIN propiedades p ON v.propiedades_id = p.id
+                INNER JOIN clientes c ON v.clientes_documento = c.documento
+                INNER JOIN propietarios prop ON p.propietarios_documento = prop.documento
+            `;
+            const params = [];
+
+            if (id) {
+                sql += ` WHERE v.idventas = ?`;
+                params.push(id);
+            }
+
+            sql += ` ORDER BY v.fecha DESC`;
+
+            const result = await database.query(sql, params);
+            return id ? (result[0] || null) : result;
+        } catch (error) {
+            console.error('❌ Error obteniendo ventas:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Actualizar venta (método estático)
+     */
+    static async actualizar(id, data) {
+        const instancia = new Venta();
+        const venta = await instancia.findById(id);
+        
         if (!venta) {
             throw new Error(`No se encontró venta con ID ${id}`);
         }
 
         // Si se está cambiando la propiedad, verificarla
         if (data.propiedades_id) {
-            await this.verificarPropiedad(data.propiedades_id);
+            await instancia.verificarPropiedad(data.propiedades_id);
         }
 
         // Si se está cambiando el cliente, verificarlo
         if (data.clientes_documento) {
-            await this.verificarCliente(data.clientes_documento);
+            await instancia.verificarCliente(data.clientes_documento);
         }
 
         // Actualizar la venta
-        const ventaActualizada = await this.update(id, data);
+        const ventaActualizada = await instancia.update(id, data);
 
         // Manejar cambios de estado
         if (data.estado) {
-            await this.manejarCambioEstado(venta, data.estado);
+            await instancia.manejarCambioEstado(venta, data.estado);
         }
 
         return ventaActualizada;
     }
 
     /**
-     * Obtener ventas con información completa
+     * Eliminar venta (método estático)
      */
-    async obtenerConDetalles(id = null) {
-        let sql = `
-            SELECT 
-                v.*,
-                p.tipo_propiedad,
-                p.ubicacion,
-                p.precio as precio_propiedad,
-                c.nombre as cliente_nombre,
-                c.apellido as cliente_apellido,
-                c.cel as cliente_cel,
-                pr.nombre as propietario_nombre,
-                pr.apellido1 as propietario_apellido1,
-                pr.cel as propietario_cel
-            FROM ${this.tableName} v
-            INNER JOIN propiedades p ON v.propiedades_id = p.id
-            INNER JOIN clientes c ON v.clientes_documento = c.documento
-            INNER JOIN propietarios pr ON p.propietarios_documento = pr.documento
-        `;
-        const params = [];
-
-        if (id) {
-            sql += ` WHERE v.idventas = ?`;
-            params.push(id);
-        }
-
-        sql += ` ORDER BY v.fecha DESC`;
-
-        const result = await this.db.query(sql, params);
-        return id ? (result[0] || null) : result;
-    }
-
-    /**
-     * Obtener ventas por estado
-     */
-    async obtenerPorEstado(estado) {
-        return await this.obtenerConDetalles().then(ventas => 
-            ventas.filter(venta => venta.estado === estado)
-        );
-    }
-
-    /**
-     * Obtener ventas de un periodo específico
-     */
-    async obtenerPorPeriodo(fechaInicio, fechaFin) {
-        const sql = `
-            SELECT v.*, 
-                   p.tipo_propiedad, p.ubicacion, p.precio as precio_propiedad,
-                   c.nombre as cliente_nombre, c.apellido as cliente_apellido
-            FROM ${this.tableName} v
-            INNER JOIN propiedades p ON v.propiedades_id = p.id
-            INNER JOIN clientes c ON v.clientes_documento = c.documento
-            WHERE v.fecha BETWEEN ? AND ?
-            ORDER BY v.fecha DESC
-        `;
-        return await this.db.query(sql, [fechaInicio, fechaFin]);
-    }
-
-    /**
-     * Obtener estadísticas de ventas
-     */
-    async obtenerEstadisticas(fechaInicio = null, fechaFin = null) {
-        let sql = `
-            SELECT 
-                COUNT(*) as total_ventas,
-                COUNT(CASE WHEN estado = 'completada' THEN 1 END) as ventas_completadas,
-                COUNT(CASE WHEN estado = 'pendiente' THEN 1 END) as ventas_pendientes,
-                COUNT(CASE WHEN estado = 'cancelada' THEN 1 END) as ventas_canceladas,
-                SUM(CASE WHEN estado = 'completada' THEN valorventa ELSE 0 END) as valor_total_ventas,
-                AVG(CASE WHEN estado = 'completada' THEN valorventa END) as valor_promedio_ventas,
-                MAX(CASE WHEN estado = 'completada' THEN valorventa END) as venta_maxima,
-                MIN(CASE WHEN estado = 'completada' THEN valorventa END) as venta_minima
-            FROM ${this.tableName}
-        `;
-        const params = [];
-
-        if (fechaInicio && fechaFin) {
-            sql += ` WHERE fecha BETWEEN ? AND ?`;
-            params.push(fechaInicio, fechaFin);
-        }
-
-        const result = await this.db.query(sql, params);
-        return result[0];
-    }
-
-    /**
-     * Obtener ventas por mes
-     */
-    async obtenerVentasPorMes(año) {
-        const sql = `
-            SELECT 
-                MONTH(fecha) as mes,
-                COUNT(*) as cantidad_ventas,
-                SUM(CASE WHEN estado = 'completada' THEN valorventa ELSE 0 END) as valor_total
-            FROM ${this.tableName}
-            WHERE YEAR(fecha) = ? AND estado = 'completada'
-            GROUP BY MONTH(fecha)
-            ORDER BY mes
-        `;
-        return await this.db.query(sql, [año]);
-    }
-
-    /**
-     * Cambiar estado de una venta
-     */
-    async cambiarEstado(id, nuevoEstado) {
-        const estadosValidos = ['pendiente', 'en_proceso', 'completada', 'cancelada'];
-        if (!estadosValidos.includes(nuevoEstado)) {
-            throw new Error(`Estado inválido. Debe ser uno de: ${estadosValidos.join(', ')}`);
-        }
-
-        const venta = await this.findById(id);
+    static async eliminar(id) {
+        const instancia = new Venta();
+        const venta = await instancia.findById(id);
+        
         if (!venta) {
-            throw new Error(`No se encontró venta con ID ${id}`);
+            return false;
         }
 
-        await this.manejarCambioEstado(venta, nuevoEstado);
-        return await this.update(id, { estado: nuevoEstado });
+        // Si la venta estaba completada, devolver propiedad a disponible
+        if (venta.estado === 'completada') {
+            await instancia.cambiarEstadoPropiedad(venta.propiedades_id, 'venta');
+        }
+
+        return await instancia.delete(id);
     }
 
     /**
-     * Manejar cambio de estado de la venta
+     * Contar total de ventas
      */
-    async manejarCambioEstado(venta, nuevoEstado) {
-        const estadoAnterior = venta.estado;
-        
-        // Si se completa la venta, marcar propiedad como vendida
-        if (nuevoEstado === 'completada' && estadoAnterior !== 'completada') {
-            await this.cambiarEstadoPropiedad(venta.propiedades_id, 'vendida');
-        }
-        
-        // Si se cancela una venta que estaba completada, devolver propiedad a disponible
-        if (nuevoEstado === 'cancelada' && estadoAnterior === 'completada') {
-            await this.cambiarEstadoPropiedad(venta.propiedades_id, 'disponible');
-        }
-        
-        // Si se pone en proceso, reservar la propiedad
-        if (nuevoEstado === 'en_proceso' && estadoAnterior === 'pendiente') {
-            await this.cambiarEstadoPropiedad(venta.propiedades_id, 'reservada');
+    static async contar() {
+        try {
+            const sql = 'SELECT COUNT(*) as total FROM ventas';
+            const result = await database.query(sql);
+            return result[0].total;
+        } catch (error) {
+            console.error('❌ Error contando ventas:', error);
+            throw error;
         }
     }
 
@@ -211,7 +145,7 @@ class Venta extends BaseModel {
      */
     async cambiarEstadoPropiedad(propiedadId, nuevoEstado) {
         const sql = `UPDATE propiedades SET disponibilidad = ? WHERE id = ?`;
-        await this.db.query(sql, [nuevoEstado, propiedadId]);
+        await database.query(sql, [nuevoEstado, propiedadId]);
     }
 
     /**
@@ -219,7 +153,7 @@ class Venta extends BaseModel {
      */
     async verificarPropiedad(propiedadId) {
         const sql = `SELECT * FROM propiedades WHERE id = ?`;
-        const result = await this.db.query(sql, [propiedadId]);
+        const result = await database.query(sql, [propiedadId]);
         
         if (result.length === 0) {
             throw new Error(`No existe una propiedad con ID ${propiedadId}`);
@@ -238,13 +172,30 @@ class Venta extends BaseModel {
      */
     async verificarCliente(documento) {
         const sql = `SELECT COUNT(*) as existe FROM clientes WHERE documento = ?`;
-        const result = await this.db.query(sql, [documento]);
+        const result = await database.query(sql, [documento]);
         
         if (result[0].existe === 0) {
             throw new Error(`No existe un cliente con documento ${documento}`);
         }
         
         return true;
+    }
+
+    /**
+     * Manejar cambio de estado de la venta
+     */
+    async manejarCambioEstado(venta, nuevoEstado) {
+        const estadoAnterior = venta.estado;
+        
+        // Si se completa la venta, marcar propiedad como vendida
+        if (nuevoEstado === 'completada' && estadoAnterior !== 'completada') {
+            await this.cambiarEstadoPropiedad(venta.propiedades_id, 'vendida');
+        }
+        
+        // Si se cancela una venta que estaba completada, devolver propiedad a disponible
+        if (nuevoEstado === 'cancelada' && estadoAnterior === 'completada') {
+            await this.cambiarEstadoPropiedad(venta.propiedades_id, 'venta');
+        }
     }
 
     /**
@@ -281,10 +232,12 @@ class Venta extends BaseModel {
             throw new Error('El ID de la propiedad debe ser un número entero positivo');
         }
 
-        if (!Number.isInteger(data.clientes_documento) || data.clientes_documento <= 0) {
-            throw new Error('El documento del cliente debe ser un número entero positivo');
+        if (!data.clientes_documento || data.clientes_documento.toString().trim() === '') {
+            throw new Error('El documento del cliente es requerido');
         }
     }
 }
+
+module.exports = Venta;
 
 module.exports = Venta;

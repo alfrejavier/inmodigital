@@ -422,6 +422,7 @@ class PropietariosManager {
 
     // Eliminar propietario
     async deletePropietario(documento) {
+        console.log('🗑️ deletePropietario llamado con documento:', documento);
         try {
             // Primero obtener información del propietario
             const response = await api.getPropietario(documento);
@@ -434,7 +435,9 @@ class PropietariosManager {
             const nombreCompleto = `${propietario.nombre} ${propietario.apellido1} ${propietario.apellido2 || ''}`.trim();
             
             // Mostrar confirmación con información detallada del propietario
-            const confirmed = await Utils.confirmDialog(
+            let confirmed = false;
+            if (typeof Utils !== 'undefined' && Utils.confirmDialog) {
+                confirmed = await Utils.confirmDialog(
                 '⚠️ Confirmar Eliminación de Propietario',
                 `
                 <div class="text-center mb-3">
@@ -461,7 +464,10 @@ class PropietariosManager {
                 `,
                 'Sí, eliminar propietario',
                 'Cancelar'
-            );
+                );
+            } else {
+                confirmed = confirm('¿Está seguro que desea eliminar este propietario?');
+            }
 
             if (!confirmed) return;
 
@@ -469,7 +475,11 @@ class PropietariosManager {
             const deleteResponse = await api.deletePropietario(documento);
             
             if (deleteResponse.success) {
-                Utils.showAlert('Propietario eliminado exitosamente', 'success');
+                if (typeof Utils !== 'undefined' && Utils.showAlert) {
+                    Utils.showAlert('Propietario eliminado exitosamente', 'success');
+                } else {
+                    alert('Propietario eliminado exitosamente');
+                }
                 // Cerrar modal si está abierto
                 const modal = document.getElementById('viewPropietarioModal');
                 if (modal) {
@@ -494,7 +504,11 @@ class PropietariosManager {
                 errorMessage = 'No se puede eliminar el propietario porque tiene registros asociados en el sistema.';
             }
             
-            Utils.showAlert(`Error al eliminar propietario: ${errorMessage}`, 'danger');
+            if (typeof Utils !== 'undefined' && Utils.showAlert) {
+                Utils.showAlert(`Error al eliminar propietario: ${errorMessage}`, 'danger');
+            } else {
+                alert(`Error al eliminar propietario: ${errorMessage}`);
+            }
         }
     }
 
@@ -596,6 +610,10 @@ class PropietariosManager {
 
 // Instancia global
 const propietariosManager = new PropietariosManager();
+console.log('✅ PropietariosManager inicializado:', propietariosManager);
+
+// También disponible globalmente para onclick
+window.propietariosManager = propietariosManager;
 
 // Funciones globales para eventos
 function showNewPropietarioForm() {

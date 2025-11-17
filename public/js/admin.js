@@ -117,7 +117,14 @@ class AdminApp {
                 
                 if (element) {
                     if (response.success) {
-                        element.textContent = response.total || response.datos?.length || counter.defaultValue;
+                        // Para propiedades, obtener el total de la paginación
+                        if (counter.id === 'total-propiedades' && response.data?.paginacion?.total_registros !== undefined) {
+                            element.textContent = response.data.paginacion.total_registros;
+                        } 
+                        // Para otros endpoints
+                        else {
+                            element.textContent = response.total || response.datos?.length || counter.defaultValue;
+                        }
                     } else {
                         element.textContent = counter.defaultValue;
                     }
@@ -180,6 +187,11 @@ class AdminApp {
             case 'clientes':
                 if (typeof clientesManager !== 'undefined') {
                     await clientesManager.loadClientes();
+                }
+                break;
+            case 'propiedades':
+                if (typeof inicializarPropiedades !== 'undefined') {
+                    inicializarPropiedades();
                 }
                 break;
             case 'perfil':
@@ -325,3 +337,4 @@ window.addEventListener('error', function(e) {
 window.addEventListener('unhandledrejection', function(e) {
     console.error('Unhandled promise rejection:', e.reason);
 });
+

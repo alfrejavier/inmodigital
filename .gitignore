@@ -29,9 +29,9 @@ Thumbs.db
 *.swp
 *.swo
 
-# Archivos de imágenes subidas (opcional, depende de tu estrategia)
-# public/images/propiedades/*
-# !public/images/propiedades/.gitkeep
+# Archivos de imágenes subidas
+public/uploads/propiedades/*
+!public/uploads/propiedades/.gitkeep
 
 # Archivos de cobertura de pruebas
 coverage/
@@ -39,3 +39,9 @@ coverage/
 # Build
 dist/
 build/
+
+# Archivos de prueba y debug (si se regeneran)
+test-*.js
+debug-*.js
+prueba-*.js
+*-test.js

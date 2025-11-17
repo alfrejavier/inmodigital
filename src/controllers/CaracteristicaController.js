@@ -1,4 +1,4 @@
-const { caracteristica } = require('../models');
+const Caracteristica = require('../models/Caracteristica');
 
 /**
  * Controlador para la gestión de características
@@ -12,7 +12,7 @@ class CaracteristicaController {
         try {
             const { propiedadId } = req.params;
             
-            const caracteristicas = await caracteristica.obtenerPorPropiedad(parseInt(propiedadId));
+            const caracteristicas = await Caracteristica.obtenerPorPropiedad(parseInt(propiedadId));
             
             res.json({
                 success: true,
@@ -37,7 +37,7 @@ class CaracteristicaController {
         try {
             const { id } = req.params;
             
-            const caracteristicaEncontrada = await caracteristica.findById(parseInt(id));
+            const caracteristicaEncontrada = await Caracteristica.findById(parseInt(id));
             
             if (!caracteristicaEncontrada) {
                 return res.status(404).json({
@@ -66,7 +66,7 @@ class CaracteristicaController {
      */
     async crear(req, res) {
         try {
-            const nuevaCaracteristica = await caracteristica.crear(req.body);
+            const nuevaCaracteristica = await Caracteristica.crear(req.body);
             
             res.status(201).json({
                 success: true,
@@ -110,7 +110,7 @@ class CaracteristicaController {
                 });
             }
 
-            const caracteristicasCreadas = await caracteristica.crearMultiples(parseInt(propiedadId), caracteristicas);
+            const caracteristicasCreadas = await Caracteristica.crearMultiples(parseInt(propiedadId), caracteristicas);
             
             res.status(201).json({
                 success: true,
@@ -145,7 +145,7 @@ class CaracteristicaController {
         try {
             const { id } = req.params;
             
-            const caracteristicaActualizada = await caracteristica.actualizar(parseInt(id), req.body);
+            const caracteristicaActualizada = await Caracteristica.actualizar(parseInt(id), req.body);
             
             res.json({
                 success: true,
@@ -195,7 +195,7 @@ class CaracteristicaController {
                 });
             }
 
-            const caracteristicasActualizadas = await caracteristica.actualizarMultiples(parseInt(propiedadId), caracteristicas);
+            const caracteristicasActualizadas = await Caracteristica.actualizarMultiples(parseInt(propiedadId), caracteristicas);
             
             res.json({
                 success: true,
@@ -236,7 +236,7 @@ class CaracteristicaController {
         try {
             const { id } = req.params;
             
-            const eliminada = await caracteristica.delete(parseInt(id));
+            const eliminada = await Caracteristica.eliminar(parseInt(id));
             
             if (!eliminada) {
                 return res.status(404).json({
@@ -267,7 +267,7 @@ class CaracteristicaController {
         try {
             const { propiedadId } = req.params;
             
-            const cantidadEliminada = await caracteristica.eliminarPorPropiedad(parseInt(propiedadId));
+            const cantidadEliminada = await Caracteristica.eliminarPorPropiedad(parseInt(propiedadId));
             
             res.json({
                 success: true,
@@ -292,7 +292,7 @@ class CaracteristicaController {
         try {
             const { nombre } = req.params;
             
-            const caracteristicasEncontradas = await caracteristica.buscarPorNombre(nombre);
+            const caracteristicasEncontradas = await Caracteristica.buscarPorNombre(nombre);
             
             res.json({
                 success: true,
@@ -317,7 +317,7 @@ class CaracteristicaController {
         try {
             const { limite = 10 } = req.query;
             
-            const caracteristicasComunes = await caracteristica.obtenerMasComunes(parseInt(limite));
+            const caracteristicasComunes = await Caracteristica.obtenerMasComunes(parseInt(limite));
             
             res.json({
                 success: true,
@@ -342,7 +342,7 @@ class CaracteristicaController {
         try {
             const { tipoPropiedad } = req.params;
             
-            const caracteristicasPorTipo = await caracteristica.obtenerPorTipoPropiedad(tipoPropiedad);
+            const caracteristicasPorTipo = await Caracteristica.obtenerPorTipoPropiedad(tipoPropiedad);
             
             res.json({
                 success: true,
@@ -366,7 +366,7 @@ class CaracteristicaController {
      */
     async obtenerEstadisticas(req, res) {
         try {
-            const estadisticas = await caracteristica.obtenerEstadisticas();
+            const estadisticas = await Caracteristica.obtenerEstadisticas();
             
             res.json({
                 success: true,

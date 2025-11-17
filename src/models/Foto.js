@@ -1,4 +1,7 @@
 const BaseModel = require('./BaseModel');
+const database = require('../config/database');
+const fs = require('fs').promises;
+const path = require('path');
 
 /**
  * Modelo para la tabla fotos
@@ -9,88 +12,106 @@ class Foto extends BaseModel {
     }
 
     /**
-     * Crear una nueva foto
+     * Crear una nueva foto (método estático)
      */
-    async crear(data) {
+    static async crear(data) {
+        const instancia = new Foto();
+        
         // Validar datos requeridos
-        this.validarDatosRequeridos(data);
+        instancia.validarDatosRequeridos(data);
         
         // Verificar que la propiedad exista
-        await this.verificarPropiedad(data.propiedades_id);
+        await instancia.verificarPropiedad(data.propiedades_id);
 
-        return await this.create(data);
+        return await instancia.create(data);
     }
 
     /**
-     * Obtener fotos de una propiedad
+     * Obtener fotos de una propiedad (método estático)
      */
-    async obtenerPorPropiedad(propiedadId) {
-        return await this.findAll({ propiedades_id: propiedadId }, 'id ASC');
-    }
-
-    /**
-     * Actualizar ruta de foto
-     */
-    async actualizarRuta(id, nuevaRuta) {
-        const foto = await this.findById(id);
-        if (!foto) {
-            throw new Error(`No se encontró foto con ID ${id}`);
+    static async obtenerPorPropiedad(propiedadId) {
+        try {
+            const consulta = `
+                SELECT id, ruta, propiedades_id
+                FROM fotos
+                WHERE propiedades_id = ?
+                ORDER BY id ASC
+            `;
+            
+            const resultado = await database.query(consulta, [propiedadId]);
+            return resultado;
+        } catch (error) {
+            console.error('❌ Error obteniendo fotos:', error);
+            throw error;
         }
-
-        return await this.update(id, { ruta: nuevaRuta });
     }
 
     /**
-     * Eliminar foto y su archivo
+     * Eliminar foto y su archivo físico (método estático)
      */
-    async eliminarFoto(id) {
-        const foto = await this.findById(id);
-        if (!foto) {
-            throw new Error(`No se encontró foto con ID ${id}`);
+    static async eliminar(id) {
+        try {
+            const instancia = new Foto();
+            const foto = await instancia.findById(id);
+            
+            if (!foto) {
+                return false;
+            }
+
+            // Eliminar archivo físico
+            try {
+                const rutaCompleta = path.join(__dirname, '../../public', foto.ruta);
+                await fs.unlink(rutaCompleta);
+                console.log('✅ Archivo eliminado:', rutaCompleta);
+            } catch (error) {
+                console.warn('⚠️ No se pudo eliminar el archivo físico:', error.message);
+            }
+
+            // Eliminar registro de BD
+            return await instancia.delete(id);
+        } catch (error) {
+            console.error('❌ Error eliminando foto:', error);
+            throw error;
         }
+    }
 
-        // Eliminar registro de la base de datos
-        const eliminada = await this.delete(id);
-        
-        if (eliminada) {
-            // Aquí podrías agregar lógica para eliminar el archivo físico
-            // const fs = require('fs').promises;
-            // try {
-            //     await fs.unlink(foto.ruta);
-            // } catch (error) {
-            //     console.log('Archivo ya no existe:', foto.ruta);
-            // }
+    /**
+     * Eliminar todas las fotos de una propiedad (método estático)
+     */
+    static async eliminarPorPropiedad(propiedadId) {
+        try {
+            const fotos = await this.obtenerPorPropiedad(propiedadId);
+            
+            for (const foto of fotos) {
+                try {
+                    const rutaCompleta = path.join(__dirname, '../../public', foto.ruta);
+                    await fs.unlink(rutaCompleta);
+                } catch (error) {
+                    console.warn('⚠️ No se pudo eliminar archivo:', foto.ruta);
+                }
+            }
+
+            const consulta = 'DELETE FROM fotos WHERE propiedades_id = ?';
+            const resultado = await database.query(consulta, [propiedadId]);
+            return resultado.affectedRows || 0;
+        } catch (error) {
+            console.error('❌ Error eliminando fotos por propiedad:', error);
+            throw error;
         }
-
-        return eliminada;
     }
 
     /**
-     * Eliminar todas las fotos de una propiedad
+     * Contar fotos de una propiedad (método estático)
      */
-    async eliminarPorPropiedad(propiedadId) {
-        const fotos = await this.obtenerPorPropiedad(propiedadId);
-        
-        for (const foto of fotos) {
-            await this.eliminarFoto(foto.id);
+    static async contar(propiedadId) {
+        try {
+            const consulta = 'SELECT COUNT(*) as total FROM fotos WHERE propiedades_id = ?';
+            const resultado = await database.query(consulta, [propiedadId]);
+            return resultado[0].total;
+        } catch (error) {
+            console.error('❌ Error contando fotos:', error);
+            throw error;
         }
-
-        return fotos.length;
-    }
-
-    /**
-     * Obtener la foto principal (primera) de una propiedad
-     */
-    async obtenerPrincipal(propiedadId) {
-        const fotos = await this.obtenerPorPropiedad(propiedadId);
-        return fotos.length > 0 ? fotos[0] : null;
-    }
-
-    /**
-     * Contar fotos por propiedad
-     */
-    async contarPorPropiedad(propiedadId) {
-        return await this.count({ propiedades_id: propiedadId });
     }
 
     /**
@@ -98,7 +119,7 @@ class Foto extends BaseModel {
      */
     async verificarPropiedad(propiedadId) {
         const sql = `SELECT COUNT(*) as existe FROM propiedades WHERE id = ?`;
-        const result = await this.db.query(sql, [propiedadId]);
+        const result = await database.query(sql, [propiedadId]);
         
         if (result[0].existe === 0) {
             throw new Error(`No existe una propiedad con ID ${propiedadId}`);
@@ -128,26 +149,6 @@ class Foto extends BaseModel {
         if (!Number.isInteger(data.propiedades_id) || data.propiedades_id <= 0) {
             throw new Error('El ID de la propiedad debe ser un número entero positivo');
         }
-    }
-
-    /**
-     * Obtener estadísticas de fotos
-     */
-    async obtenerEstadisticas() {
-        const sql = `
-            SELECT 
-                COUNT(*) as total_fotos,
-                COUNT(DISTINCT propiedades_id) as propiedades_con_fotos,
-                AVG(fotos_por_propiedad.cantidad) as promedio_fotos_por_propiedad
-            FROM ${this.tableName}
-            LEFT JOIN (
-                SELECT propiedades_id, COUNT(*) as cantidad
-                FROM ${this.tableName}
-                GROUP BY propiedades_id
-            ) as fotos_por_propiedad ON ${this.tableName}.propiedades_id = fotos_por_propiedad.propiedades_id
-        `;
-        const result = await this.db.query(sql);
-        return result[0];
     }
 }
 

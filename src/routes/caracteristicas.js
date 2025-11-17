@@ -19,20 +19,20 @@ router.get('/buscar/:nombre', CaracteristicaController.buscarPorNombre);
 // GET /api/caracteristicas/tipo/:tipoPropiedad - Obtener por tipo de propiedad
 router.get('/tipo/:tipoPropiedad', CaracteristicaController.obtenerPorTipoPropiedad);
 
-// GET /api/caracteristicas/:id - Obtener característica por ID
-router.get('/:id', CaracteristicaController.obtenerPorId);
+// GET /api/caracteristicas/propiedad/:propiedadId - Obtener características de una propiedad
+router.get('/propiedad/:propiedadId', CaracteristicaController.obtenerPorPropiedad);
 
 // POST /api/caracteristicas - Crear nueva característica
 router.post('/', CaracteristicaController.crear);
+
+// GET /api/caracteristicas/:id - Obtener característica por ID
+router.get('/:id', CaracteristicaController.obtenerPorId);
 
 // PUT /api/caracteristicas/:id - Actualizar característica
 router.put('/:id', CaracteristicaController.actualizar);
 
 // DELETE /api/caracteristicas/:id - Eliminar característica
 router.delete('/:id', CaracteristicaController.eliminar);
-
-// GET /api/caracteristicas/propiedad/:propiedadId - Obtener características de una propiedad
-router.get('/propiedad/:propiedadId', CaracteristicaController.obtenerPorPropiedad);
 
 // POST /api/caracteristicas/propiedad/:propiedadId/multiples - Crear múltiples características
 router.post('/propiedad/:propiedadId/multiples', CaracteristicaController.crearMultiples);

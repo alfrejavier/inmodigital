@@ -1,4 +1,4 @@
-const { propiedad, foto, caracteristica } = require('../models');
+const Propiedad = require('../models/Propiedad');
 
 /**
  * Controlador para la gestión de propiedades
@@ -6,33 +6,112 @@ const { propiedad, foto, caracteristica } = require('../models');
 class PropiedadController {
 
     /**
-     * Obtener todas las propiedades
+     * Obtener todas las propiedades con paginación y filtros
      */
     async obtenerTodas(req, res) {
         try {
-            const { page = 1, limit = 10, ...filtros } = req.query;
-            
-            let propiedades;
-            
-            if (Object.keys(filtros).length > 0) {
-                // Aplicar filtros de búsqueda
-                filtros.limit = limit;
-                propiedades = await propiedad.buscarPorFiltros(filtros);
-            } else {
-                const offset = (page - 1) * limit;
-                propiedades = await propiedad.obtenerConPropietario();
+            const {
+                pagina = 1,
+                limite = 10,
+                tipo_propiedad,
+                ciudad,
+                depto,
+                disponibilidad,
+                precio_min,
+                precio_max,
+                ordenar_por = 'fecha_registro',
+                orden = 'DESC'
+            } = req.query;
+
+            // Construir filtros
+            const filtros = {};
+            if (tipo_propiedad) filtros.tipo_propiedad = tipo_propiedad;
+            if (ciudad) filtros.ciudad = ciudad;
+            if (depto) filtros.depto = depto;
+            if (disponibilidad) filtros.disponibilidad = disponibilidad;
+
+            // Calcular offset para paginación
+            const offset = (parseInt(pagina) - 1) * parseInt(limite);
+
+            // Obtener propiedades con filtros y paginación
+            const resultado = await Propiedad.obtenerConFiltros({
+                filtros,
+                precio_min: precio_min ? parseFloat(precio_min) : null,
+                precio_max: precio_max ? parseFloat(precio_max) : null,
+                ordenar_por,
+                orden,
+                limite: parseInt(limite),
+                offset
+            });
+
+            // Contar total para paginación
+            const total = await Propiedad.contarConFiltros({
+                filtros,
+                precio_min: precio_min ? parseFloat(precio_min) : null,
+                precio_max: precio_max ? parseFloat(precio_max) : null
+            });
+
+            const totalPaginas = Math.ceil(total / parseInt(limite));
+
+            res.json({
+                success: true,
+                data: {
+                    propiedades: resultado,
+                    paginacion: {
+                        pagina_actual: parseInt(pagina),
+                        total_paginas: totalPaginas,
+                        total_registros: total,
+                        registros_por_pagina: parseInt(limite)
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error('Error obteniendo propiedades:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Obtener propiedades por propietario
+     */
+    async obtenerPorPropietario(req, res) {
+        try {
+            const { documento } = req.params;
+
+            if (!documento) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Documento del propietario requerido'
+                });
             }
 
+            // Verificar que el propietario existe
+            const propietarioExiste = await Propiedad.verificarPropietarioExiste(documento);
+            if (!propietarioExiste) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Propietario no encontrado'
+                });
+            }
+
+            const propiedades = await Propiedad.obtenerPorPropietario(documento);
+
             res.json({
                 success: true,
-                data: propiedades,
-                total: propiedades.length,
-                page: parseInt(page),
-                limit: parseInt(limit)
+                data: {
+                    propietario_documento: documento,
+                    total_propiedades: propiedades.length,
+                    propiedades: propiedades
+                }
             });
 
         } catch (error) {
-            console.error('Error al obtener propiedades:', error);
+            console.error('Error obteniendo propiedades por propietario:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',
@@ -42,53 +121,35 @@ class PropiedadController {
     }
 
     /**
-     * Obtener propiedades disponibles
-     */
-    async obtenerDisponibles(req, res) {
-        try {
-            const { limit = 20, orden = 'precio ASC' } = req.query;
-            
-            const propiedadesDisponibles = await propiedad.obtenerDisponibles();
-            
-            res.json({
-                success: true,
-                data: propiedadesDisponibles,
-                total: propiedadesDisponibles.length
-            });
-
-        } catch (error) {
-            console.error('Error al obtener propiedades disponibles:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Obtener una propiedad por ID
+     * Obtener una propiedad por ID con información del propietario
      */
     async obtenerPorId(req, res) {
         try {
             const { id } = req.params;
-            
-            const propiedadEncontrada = await propiedad.obtenerCompleta(parseInt(id));
-            
-            if (!propiedadEncontrada) {
+
+            if (!id || isNaN(id)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'ID de propiedad inválido'
+                });
+            }
+
+            const propiedad = await Propiedad.obtenerPorIdConPropietario(parseInt(id));
+
+            if (!propiedad) {
                 return res.status(404).json({
                     success: false,
-                    message: `No se encontró propiedad con ID ${id}`
+                    message: 'Propiedad no encontrada'
                 });
             }
 
             res.json({
                 success: true,
-                data: propiedadEncontrada
+                data: propiedad
             });
 
         } catch (error) {
-            console.error('Error al obtener propiedad:', error);
+            console.error('Error obteniendo propiedad:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',
@@ -102,25 +163,53 @@ class PropiedadController {
      */
     async crear(req, res) {
         try {
-            const nuevaPropiedad = await propiedad.crear(req.body);
-            
+            const datosPropiedad = req.body;
+
+            // Validar datos de entrada
+            const erroresValidacion = Propiedad.validarDatos(datosPropiedad);
+            if (erroresValidacion.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Datos de propiedad inválidos',
+                    errores: erroresValidacion
+                });
+            }
+
+            // Verificar que el propietario existe
+            const propietarioExiste = await Propiedad.verificarPropietarioExiste(datosPropiedad.propietarios_documento);
+            if (!propietarioExiste) {
+                return res.status(400).json({
+                    success: false,
+                    message: `No existe un propietario con documento: ${datosPropiedad.propietarios_documento}`
+                });
+            }
+
+            // Crear la propiedad
+            const resultado = await Propiedad.crear(datosPropiedad);
+
+            // Verificar si hubo error en la creación
+            if (!resultado.exito) {
+                return res.status(400).json({
+                    success: false,
+                    message: resultado.mensaje,
+                    errors: resultado.errores
+                });
+            }
+
             res.status(201).json({
                 success: true,
                 message: 'Propiedad creada exitosamente',
-                data: nuevaPropiedad
+                data: resultado.propiedad
             });
 
         } catch (error) {
-            console.error('Error al crear propiedad:', error);
+            console.error('Error creando propiedad:', error);
             
-            // Manejar errores de validación
-            if (error.message.includes('requerido') || 
-                error.message.includes('No existe') ||
-                error.message.includes('debe ser') ||
-                error.message.includes('válida')) {
+            // Manejo específico para errores de clave foránea
+            if (error.code === 'ER_NO_REFERENCED_ROW_2') {
                 return res.status(400).json({
                     success: false,
-                    message: error.message
+                    message: 'El propietario especificado no existe'
                 });
             }
 
@@ -133,36 +222,70 @@ class PropiedadController {
     }
 
     /**
-     * Actualizar una propiedad
+     * Actualizar una propiedad existente
      */
     async actualizar(req, res) {
         try {
             const { id } = req.params;
-            
-            const propiedadActualizada = await propiedad.actualizar(parseInt(id), req.body);
-            
-            res.json({
-                success: true,
-                message: 'Propiedad actualizada exitosamente',
-                data: propiedadActualizada
-            });
+            const datosActualizacion = req.body;
 
-        } catch (error) {
-            console.error('Error al actualizar propiedad:', error);
-            
-            if (error.message.includes('No se encontró') || error.message.includes('No existe')) {
-                return res.status(404).json({
+            if (!id || isNaN(id)) {
+                return res.status(400).json({
                     success: false,
-                    message: error.message
+                    message: 'ID de propiedad inválido'
                 });
             }
 
-            if (error.message.includes('requerido') || 
-                error.message.includes('debe ser') ||
-                error.message.includes('válida')) {
+            // Verificar que la propiedad existe
+            const propiedadExistente = await Propiedad.obtenerPorId(parseInt(id));
+            if (!propiedadExistente) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Propiedad no encontrada'
+                });
+            }
+
+            // Validar datos de actualización (solo campos presentes)
+            const erroresValidacion = Propiedad.validarDatos(datosActualizacion, false);
+            if (erroresValidacion.length > 0) {
                 return res.status(400).json({
                     success: false,
-                    message: error.message
+                    message: 'Datos de actualización inválidos',
+                    errores: erroresValidacion
+                });
+            }
+
+            // Si se está actualizando el propietario, verificar que existe
+            if (datosActualizacion.propietarios_documento) {
+                const propietarioExiste = await Propiedad.verificarPropietarioExiste(datosActualizacion.propietarios_documento);
+                if (!propietarioExiste) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `No existe un propietario con documento: ${datosActualizacion.propietarios_documento}`
+                    });
+                }
+            }
+
+            // Actualizar la propiedad
+            const propiedadActualizada = await Propiedad.actualizar(parseInt(id), datosActualizacion);
+
+            // Obtener la propiedad completa con información del propietario
+            const propiedadCompleta = await Propiedad.obtenerPorIdConPropietario(parseInt(id));
+
+            res.json({
+                success: true,
+                message: 'Propiedad actualizada exitosamente',
+                data: propiedadCompleta
+            });
+
+        } catch (error) {
+            console.error('Error actualizando propiedad:', error);
+            
+            // Manejo específico para errores de clave foránea
+            if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'El propietario especificado no existe'
                 });
             }
 
@@ -180,26 +303,40 @@ class PropiedadController {
     async eliminar(req, res) {
         try {
             const { id } = req.params;
-            
-            // Verificar que la propiedad no esté en una venta activa
-            // Aquí podrías agregar validación adicional si es necesario
-            
-            const eliminada = await propiedad.delete(parseInt(id));
-            
-            if (!eliminada) {
-                return res.status(404).json({
+
+            if (!id || isNaN(id)) {
+                return res.status(400).json({
                     success: false,
-                    message: `No se encontró propiedad con ID ${id}`
+                    message: 'ID de propiedad inválido'
                 });
             }
 
-            res.json({
-                success: true,
-                message: 'Propiedad eliminada exitosamente'
-            });
+            // Verificar que la propiedad existe
+            const propiedadExistente = await Propiedad.obtenerPorId(parseInt(id));
+            if (!propiedadExistente) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Propiedad no encontrada'
+                });
+            }
+
+            // Eliminar la propiedad
+            const eliminada = await Propiedad.eliminar(parseInt(id));
+
+            if (eliminada) {
+                res.json({
+                    success: true,
+                    message: 'Propiedad eliminada exitosamente'
+                });
+            } else {
+                res.status(500).json({
+                    success: false,
+                    message: 'No se pudo eliminar la propiedad'
+                });
+            }
 
         } catch (error) {
-            console.error('Error al eliminar propiedad:', error);
+            console.error('Error eliminando propiedad:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',
@@ -215,39 +352,45 @@ class PropiedadController {
         try {
             const { id } = req.params;
             const { disponibilidad } = req.body;
-            
-            if (!disponibilidad) {
+
+            if (!id || isNaN(id)) {
                 return res.status(400).json({
                     success: false,
-                    message: 'La disponibilidad es requerida'
+                    message: 'ID de propiedad inválido'
                 });
             }
 
-            const propiedadActualizada = await propiedad.cambiarDisponibilidad(parseInt(id), disponibilidad);
-            
+            const disponibilidadesValidas = ['disponible', 'vendida', 'alquilada', 'reservada'];
+            if (!disponibilidad || !disponibilidadesValidas.includes(disponibilidad)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Disponibilidad inválida. Valores permitidos: ' + disponibilidadesValidas.join(', ')
+                });
+            }
+
+            // Verificar que la propiedad existe
+            const propiedadExistente = await Propiedad.obtenerPorId(parseInt(id));
+            if (!propiedadExistente) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Propiedad no encontrada'
+                });
+            }
+
+            // Actualizar disponibilidad
+            await Propiedad.actualizar(parseInt(id), { disponibilidad });
+
+            // Obtener la propiedad actualizada
+            const propiedadActualizada = await Propiedad.obtenerPorIdConPropietario(parseInt(id));
+
             res.json({
                 success: true,
-                message: 'Disponibilidad actualizada exitosamente',
+                message: `Disponibilidad cambiada a: ${disponibilidad}`,
                 data: propiedadActualizada
             });
 
         } catch (error) {
-            console.error('Error al cambiar disponibilidad:', error);
-            
-            if (error.message.includes('No se encontró')) {
-                return res.status(404).json({
-                    success: false,
-                    message: error.message
-                });
-            }
-
-            if (error.message.includes('inválida')) {
-                return res.status(400).json({
-                    success: false,
-                    message: error.message
-                });
-            }
-
+            console.error('Error cambiando disponibilidad:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',
@@ -256,70 +399,22 @@ class PropiedadController {
         }
     }
 
-    /**
-     * Obtener fotos de una propiedad
-     */
-    async obtenerFotos(req, res) {
-        try {
-            const { id } = req.params;
-            
-            const fotos = await foto.obtenerPorPropiedad(parseInt(id));
-            
-            res.json({
-                success: true,
-                data: fotos,
-                total: fotos.length
-            });
 
-        } catch (error) {
-            console.error('Error al obtener fotos:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Obtener características de una propiedad
-     */
-    async obtenerCaracteristicas(req, res) {
-        try {
-            const { id } = req.params;
-            
-            const caracteristicas = await caracteristica.obtenerPorPropiedad(parseInt(id));
-            
-            res.json({
-                success: true,
-                data: caracteristicas,
-                total: caracteristicas.length
-            });
-
-        } catch (error) {
-            console.error('Error al obtener características:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
-    }
 
     /**
      * Obtener estadísticas de propiedades
      */
     async obtenerEstadisticas(req, res) {
         try {
-            const estadisticas = await propiedad.obtenerEstadisticas();
-            
+            const estadisticas = await Propiedad.obtenerEstadisticas();
+
             res.json({
                 success: true,
                 data: estadisticas
             });
 
         } catch (error) {
-            console.error('Error al obtener estadísticas:', error);
+            console.error('Error obteniendo estadísticas:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',
@@ -328,31 +423,7 @@ class PropiedadController {
         }
     }
 
-    /**
-     * Buscar propiedades por filtros avanzados
-     */
-    async buscarAvanzada(req, res) {
-        try {
-            const filtros = req.body;
-            
-            const propiedadesEncontradas = await propiedad.buscarPorFiltros(filtros);
-            
-            res.json({
-                success: true,
-                data: propiedadesEncontradas,
-                total: propiedadesEncontradas.length,
-                filtros: filtros
-            });
 
-        } catch (error) {
-            console.error('Error en búsqueda avanzada:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
-    }
 }
 
 module.exports = new PropiedadController();

@@ -1,0 +1,143 @@
+/* SweetAlert2 Dark Theme Custom Styles */
+
+.swal-dark-theme {
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+.swal2-popup.swal-dark-theme {
+    background: #1a1a1a !important;
+    border: 1px solid #333 !important;
+}
+
+.swal2-title {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.swal2-content {
+    color: #cccccc !important;
+}
+
+.swal2-icon {
+    border-color: transparent !important;
+}
+
+.swal2-icon.swal2-success {
+    border-color: #28a745 !important;
+}
+
+.swal2-icon.swal2-success .swal2-success-ring {
+    border-color: #28a745 !important;
+}
+
+.swal2-icon.swal2-success [class^=swal2-success-line] {
+    background-color: #28a745 !important;
+}
+
+.swal2-icon.swal2-error {
+    border-color: #dc3545 !important;
+}
+
+.swal2-icon.swal2-error .swal2-x-mark-line-left,
+.swal2-icon.swal2-error .swal2-x-mark-line-right {
+    background-color: #dc3545 !important;
+}
+
+.swal2-icon.swal2-warning {
+    border-color: #ffc107 !important;
+    color: #ffc107 !important;
+}
+
+.swal2-icon.swal2-info {
+    border-color: #17a2b8 !important;
+    color: #17a2b8 !important;
+}
+
+.swal2-progress-steps .swal2-progress-step {
+    background: #333 !important;
+}
+
+.swal2-progress-steps .swal2-progress-step.swal2-active-progress-step {
+    background: #007bff !important;
+}
+
+/* Toast styles */
+.swal2-toast.swal-dark-theme {
+    background: #1a1a1a !important;
+    border: 1px solid #333 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.swal2-toast .swal2-title {
+    color: #ffffff !important;
+}
+
+.swal2-toast .swal2-content {
+    color: #cccccc !important;
+}
+
+/* Input styles */
+.swal2-input,
+.swal2-textarea {
+    background: #333 !important;
+    border: 1px solid #555 !important;
+    color: #ffffff !important;
+}
+
+.swal2-input:focus,
+.swal2-textarea:focus {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Timer progress bar */
+.swal2-timer-progress-bar {
+    background: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Close button */
+.swal2-close {
+    color: #ffffff !important;
+}
+
+.swal2-close:hover {
+    color: #cccccc !important;
+}
+
+/* Animation improvements */
+.swal2-popup.swal2-show {
+    animation: swal2-show 0.3s ease-out !important;
+}
+
+.swal2-popup.swal2-hide {
+    animation: swal2-hide 0.15s ease-in !important;
+}
+
+@keyframes swal2-show {
+    0% {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+    45% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+    80% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes swal2-hide {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+}

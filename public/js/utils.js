@@ -3,42 +3,51 @@
  */
 class Utils {
     /**
-     * Mostrar alerta usando Bootstrap
+     * Mostrar alerta usando SweetAlert2 con tema dark
      * @param {string} message - Mensaje a mostrar
      * @param {string} type - Tipo de alerta: 'success', 'danger', 'warning', 'info'
-     * @param {number} duration - Duración en milisegundos (opcional, por defecto 5000)
+     * @param {number} duration - Duración en milisegundos (opcional, por defecto 3000)
      */
-    static showAlert(message, type = 'info', duration = 5000) {
+    static showAlert(message, type = 'info', duration = 3000) {
         console.log('🔔 Utils.showAlert ejecutándose:', { message, type, duration });
+        console.log('🍭 SweetAlert2 disponible:', typeof Swal !== 'undefined');
         
         try {
-            // Crear el elemento de alerta
-            const alertId = 'alert-' + Date.now();
-            const alertHtml = `
-                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show position-fixed" 
-                     style="top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px;">
-                    <strong>${this.getAlertIcon(type)}</strong> ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            `;
-
-            // Agregar la alerta al body
-            document.body.insertAdjacentHTML('beforeend', alertHtml);
-            console.log('✅ Alerta agregada al DOM');
-
-            // Auto-remover después del tiempo especificado
-            setTimeout(() => {
-                const alertElement = document.getElementById(alertId);
-                if (alertElement) {
-                    try {
-                        const bsAlert = new bootstrap.Alert(alertElement);
-                        bsAlert.close();
-                    } catch (e) {
-                        // Fallback: remover manualmente
-                        alertElement.remove();
-                    }
+            // Verificar si SweetAlert2 está disponible
+            if (typeof Swal === 'undefined') {
+                console.error('❌ SweetAlert2 no está disponible, usando alert nativo');
+                alert(`${type.toUpperCase()}: ${message}`);
+                return;
+            }
+            // Mapear tipos de Bootstrap a SweetAlert2
+            const swalTypes = {
+                'success': 'success',
+                'danger': 'error',
+                'warning': 'warning',
+                'info': 'info'
+            };
+            
+            const swalType = swalTypes[type] || 'info';
+            
+            Swal.fire({
+                title: this.getAlertTitle(type),
+                text: message,
+                icon: swalType,
+                timer: duration,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                },
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
                 }
-            }, duration);
+            });
             
         } catch (error) {
             console.error('Error en showAlert:', error);
@@ -48,7 +57,22 @@ class Utils {
     }
 
     /**
-     * Obtener icono según el tipo de alerta
+     * Obtener título según el tipo de alerta
+     * @param {string} type - Tipo de alerta
+     * @returns {string} - Título de la alerta
+     */
+    static getAlertTitle(type) {
+        const titles = {
+            'success': '¡Éxito!',
+            'danger': '¡Error!',
+            'warning': '¡Advertencia!',
+            'info': 'Información'
+        };
+        return titles[type] || titles['info'];
+    }
+
+    /**
+     * Obtener icono según el tipo de alerta (para compatibilidad)
      * @param {string} type - Tipo de alerta
      * @returns {string} - HTML del icono
      */
@@ -75,7 +99,7 @@ class Utils {
     }
 
     /**
-     * Mostrar modal de confirmación
+     * Mostrar modal de confirmación usando SweetAlert2 con tema dark
      * @param {string} title - Título del modal
      * @param {string} message - Mensaje del modal
      * @param {string} confirmText - Texto del botón de confirmación
@@ -84,44 +108,42 @@ class Utils {
      */
     static showConfirmModal(title, message, confirmText = 'Confirmar', cancelText = 'Cancelar') {
         return new Promise((resolve) => {
-            const modalId = 'confirmModal-' + Date.now();
-            const modalHtml = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">${title}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p>${message}</p>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${cancelText}</button>
-                                <button type="button" class="btn btn-danger" id="${modalId}-confirm">${confirmText}</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            try {
+                // Verificar si SweetAlert2 está disponible
+                if (typeof Swal === 'undefined') {
+                    console.error('❌ SweetAlert2 no está disponible para confirmación, usando confirm nativo');
+                    resolve(confirm(message));
+                    return;
+                }
+                Swal.fire({
+                    title: title,
+                    text: message,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: confirmText,
+                    cancelButtonText: cancelText,
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    customClass: {
+                        popup: 'swal-dark-theme',
+                        confirmButton: 'btn btn-danger me-2',
+                        cancelButton: 'btn btn-secondary'
+                    },
+                    buttonsStyling: false,
+                    reverseButtons: true,
+                    focusConfirm: false,
+                    focusCancel: true
+                }).then((result) => {
+                    resolve(result.isConfirmed);
+                });
 
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            const modalElement = document.getElementById(modalId);
-            const modal = new bootstrap.Modal(modalElement);
-
-            // Manejar la confirmación
-            document.getElementById(`${modalId}-confirm`).addEventListener('click', () => {
-                modal.hide();
-                resolve(true);
-            });
-
-            // Manejar la cancelación
-            modalElement.addEventListener('hidden.bs.modal', () => {
-                modalElement.remove();
-                resolve(false);
-            });
-
-            modal.show();
+            } catch (error) {
+                console.error('Error en showConfirmModal:', error);
+                // Fallback: usar confirm nativo
+                resolve(confirm(message));
+            }
         });
     }
 
@@ -307,3 +329,10 @@ window.Utils = Utils;
 console.log('✅ Utils.js cargado correctamente');
 console.log('Utils object:', Utils);
 console.log('Utils.showAlert type:', typeof Utils.showAlert);
+
+// Verificar que Utils esté disponible globalmente
+if (typeof window.Utils === 'undefined') {
+    console.error('❌ ERROR: Utils no está disponible globalmente');
+} else {
+    console.log('✅ Utils disponible globalmente como window.Utils');
+}
