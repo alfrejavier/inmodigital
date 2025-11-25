@@ -42,7 +42,7 @@ async function cargarVentas() {
             </tr>
         `;
 
-        const response = await api.get('/api/ventas');
+        const response = await api.get('/ventas');
         
         if (response.success) {
             let ventas = response.data || [];
@@ -166,8 +166,16 @@ async function nuevaVenta() {
  */
 async function editarVenta(id) {
     try {
+        // Destruir Select2 existentes
+        if ($('#propiedades_id').hasClass('select2-hidden-accessible')) {
+            $('#propiedades_id').select2('destroy');
+        }
+        if ($('#clientes_documento').hasClass('select2-hidden-accessible')) {
+            $('#clientes_documento').select2('destroy');
+        }
+        
         // Cargar datos de la venta
-        const response = await api.get(`/api/ventas/${id}`);
+        const response = await api.get(`/ventas/${id}`);
         
         if (!response.success || !response.data) {
             throw new Error('No se pudo cargar la venta');
@@ -189,13 +197,44 @@ async function editarVenta(id) {
         document.getElementById('valorventa').value = venta.valorventa;
         document.getElementById('estadoVenta').value = venta.estado;
         
-        // Actualizar título
-        document.getElementById('venta-modal-title').textContent = 'Editar Venta';
-        document.getElementById('venta-save-btn-text').textContent = 'Actualizar';
+        // Reinicializar Select2 después de establecer valores
+        $('#propiedades_id').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            dropdownParent: $('#ventaModal'),
+            placeholder: 'Seleccione una propiedad',
+            allowClear: true,
+            language: {
+                noResults: () => 'No se encontraron resultados',
+                searching: () => 'Buscando...'
+            }
+        });
         
-        // Ocultar mensajes
-        document.getElementById('ventaError').classList.add('d-none');
-        document.getElementById('ventaSuccess').classList.add('d-none');
+        $('#clientes_documento').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            dropdownParent: $('#ventaModal'),
+            placeholder: 'Seleccione un cliente',
+            allowClear: true,
+            language: {
+                noResults: () => 'No se encontraron resultados',
+                searching: () => 'Buscando...'
+            }
+        });
+        
+        // Actualizar título y botón de forma segura
+        const modalTitle = document.getElementById('venta-modal-title');
+        const saveBtnText = document.getElementById('venta-save-btn-text');
+        
+        if (modalTitle) modalTitle.textContent = 'Editar Venta';
+        if (saveBtnText) saveBtnText.textContent = 'Actualizar';
+        
+        // Ocultar mensajes de forma segura
+        const errorDiv = document.getElementById('ventaError');
+        const successDiv = document.getElementById('ventaSuccess');
+        
+        if (errorDiv) errorDiv.classList.add('d-none');
+        if (successDiv) successDiv.classList.add('d-none');
         
         ventaModal.show();
         
@@ -205,7 +244,12 @@ async function editarVenta(id) {
             icon: 'error',
             title: 'Error',
             text: 'No se pudo cargar la información de la venta',
-            confirmButtonColor: '#0d6efd'
+            confirmButtonColor: '#0d6efd',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            customClass: {
+                popup: 'swal-dark-theme'
+            }
         });
     }
 }
@@ -247,10 +291,10 @@ async function guardarVenta() {
         let response;
         if (id) {
             // Actualizar
-            response = await api.put(`/api/ventas/${id}`, datos);
+            response = await api.put(`/ventas/${id}`, datos);
         } else {
             // Crear
-            response = await api.post('/api/ventas', datos);
+            response = await api.post('/ventas', datos);
         }
         
         if (response.success) {
@@ -265,7 +309,12 @@ async function guardarVenta() {
                     title: '¡Éxito!',
                     text: response.message || 'Operación realizada correctamente',
                     timer: 2000,
-                    showConfirmButton: false
+                    showConfirmButton: false,
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    customClass: {
+                        popup: 'swal-dark-theme'
+                    }
                 });
             }, 1000);
             
@@ -299,12 +348,17 @@ async function eliminarVenta(id) {
         confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
+        cancelButtonText: 'Cancelar',
+        background: '#1a1a1a',
+        color: '#ffffff',
+        customClass: {
+            popup: 'swal-dark-theme'
+        }
     });
     
     if (result.isConfirmed) {
         try {
-            const response = await api.delete(`/api/ventas/${id}`);
+            const response = await api.delete(`/ventas/${id}`);
             
             if (response.success) {
                 await Swal.fire({
@@ -312,7 +366,12 @@ async function eliminarVenta(id) {
                     title: 'Eliminada',
                     text: 'La venta ha sido eliminada correctamente',
                     timer: 2000,
-                    showConfirmButton: false
+                    showConfirmButton: false,
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    customClass: {
+                        popup: 'swal-dark-theme'
+                    }
                 });
                 
                 cargarVentas();
@@ -326,7 +385,12 @@ async function eliminarVenta(id) {
                 icon: 'error',
                 title: 'Error',
                 text: error.message || 'No se pudo eliminar la venta',
-                confirmButtonColor: '#0d6efd'
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
             });
         }
     }
@@ -346,17 +410,17 @@ function limpiarFiltrosVentas() {
  */
 async function cargarPropiedadesDisponibles(propiedadSeleccionada = null) {
     try {
-        const response = await api.get('/api/propiedades');
+        const response = await api.get('/propiedades?limite=1000');
         
-        if (response.success && response.data) {
+        if (response.success && response.data && response.data.propiedades) {
             // Filtrar solo propiedades disponibles (venta o arriendo)
-            let propiedades = response.data.filter(p => 
+            let propiedades = response.data.propiedades.filter(p => 
                 p.disponibilidad === 'venta' || p.disponibilidad === 'arriendo'
             );
             
             // Si estamos editando, incluir la propiedad actual aunque esté vendida
             if (propiedadSeleccionada) {
-                const propActual = response.data.find(p => p.id === propiedadSeleccionada);
+                const propActual = response.data.propiedades.find(p => p.id === propiedadSeleccionada);
                 if (propActual && !propiedades.find(p => p.id === propiedadSeleccionada)) {
                     propiedades.unshift(propActual);
                 }
@@ -368,13 +432,23 @@ async function cargarPropiedadesDisponibles(propiedadSeleccionada = null) {
             propiedades.forEach(prop => {
                 const option = document.createElement('option');
                 option.value = prop.id;
-                option.textContent = `${prop.tipo} - ${prop.ubicacion}, ${prop.ciudad} - ${formatearMoneda(prop.precio)}`;
+                option.textContent = `${prop.tipo_propiedad} - ${prop.ubicacion}, ${prop.ciudad} - ${formatearMoneda(prop.precio)}`;
                 if (prop.disponibilidad === 'vendida' || prop.disponibilidad === 'arrendada') {
                     option.textContent += ' (No disponible)';
                     option.disabled = true;
                 }
                 select.appendChild(option);
             });
+            
+            // Refrescar select2
+            if (typeof $.fn.select2 !== 'undefined') {
+                $('#propiedades_id').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Buscar propiedad...',
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
             
             propiedadesDisponibles = propiedades;
         }
@@ -385,7 +459,12 @@ async function cargarPropiedadesDisponibles(propiedadSeleccionada = null) {
             icon: 'error',
             title: 'Error',
             text: 'No se pudieron cargar las propiedades disponibles',
-            confirmButtonColor: '#0d6efd'
+            confirmButtonColor: '#0d6efd',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            customClass: {
+                popup: 'swal-dark-theme'
+            }
         });
     }
 }
@@ -395,7 +474,7 @@ async function cargarPropiedadesDisponibles(propiedadSeleccionada = null) {
  */
 async function cargarClientes() {
     try {
-        const response = await api.get('/api/clientes');
+        const response = await api.get('/clientes');
         
         if (response.success && response.data) {
             const clientes = response.data;
@@ -410,6 +489,16 @@ async function cargarClientes() {
                 select.appendChild(option);
             });
             
+            // Refrescar select2
+            if (typeof $.fn.select2 !== 'undefined') {
+                $('#clientes_documento').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Buscar cliente...',
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+            
             clientesActivos = clientes;
         }
         
@@ -419,7 +508,12 @@ async function cargarClientes() {
             icon: 'error',
             title: 'Error',
             text: 'No se pudieron cargar los clientes',
-            confirmButtonColor: '#0d6efd'
+            confirmButtonColor: '#0d6efd',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            customClass: {
+                popup: 'swal-dark-theme'
+            }
         });
     }
 }

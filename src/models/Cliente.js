@@ -201,7 +201,9 @@ class Cliente extends BaseModel {
                         WHEN cel LIKE ? THEN 4
                         ELSE 5
                     END,
-                    nombre ASC, apellido ASC
+                    nombre ASC, apellido                    # Conéctate a MySQL y ejecuta:
+                    source sql/crear_tabla_productos.sql                    # Conéctate a MySQL y ejecuta:
+                    source sql/crear_tabla_productos.sql ASC
                 LIMIT ?
             `;
 

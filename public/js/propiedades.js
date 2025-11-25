@@ -31,12 +31,15 @@ async function cargarPropietariosSelect() {
     } catch (error) {
         console.error('Error cargando propietarios:', error);
         Swal.fire({
-            toast: true,
-            position: 'top-end',
             icon: 'error',
-            title: 'Error cargando propietarios',
-            showConfirmButton: false,
-            timer: 3000
+            title: 'Error',
+            text: 'Error cargando propietarios',
+            confirmButtonColor: '#0d6efd',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            customClass: {
+                popup: 'swal-dark-theme'
+            }
         });
     }
 }
@@ -95,12 +98,15 @@ async function cargarPropiedades(pagina = 1) {
             </tr>
         `;
         Swal.fire({
-            toast: true,
-            position: 'top-end',
             icon: 'error',
-            title: error.message,
-            showConfirmButton: false,
-            timer: 3000
+            title: 'Error al cargar propiedades',
+            text: error.message,
+            confirmButtonColor: '#0d6efd',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            customClass: {
+                popup: 'swal-dark-theme'
+            }
         });
     }
 }
@@ -257,12 +263,15 @@ async function cargarDatosPropiedad(id) {
     } catch (error) {
         console.error('Error:', error);
         Swal.fire({
-            toast: true,
-            position: 'top-end',
             icon: 'error',
-            title: 'Error cargando datos de propiedad',
-            showConfirmButton: false,
-            timer: 3000
+            title: 'Error',
+            text: 'Error cargando datos de propiedad',
+            confirmButtonColor: '#0d6efd',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            customClass: {
+                popup: 'swal-dark-theme'
+            }
         });
     }
 }
@@ -305,16 +314,21 @@ async function guardarPropiedad() {
         const data = await response.json();
         
         if (data.success) {
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: id ? 'Propiedad actualizada exitosamente' : 'Propiedad creada exitosamente',
-                showConfirmButton: false,
-                timer: 3000
-            });
             bootstrap.Modal.getInstance(document.getElementById('propiedadModal')).hide();
             cargarPropiedades(propiedadesPaginaActual);
+            
+            await Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: id ? 'Propiedad actualizada exitosamente' : 'Propiedad creada exitosamente',
+                timer: 2000,
+                showConfirmButton: false,
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
         } else {
             throw new Error(data.message || 'Error guardando propiedad');
         }
@@ -380,12 +394,15 @@ async function verDetallePropiedad(id) {
     } catch (error) {
         console.error('Error:', error);
         Swal.fire({
-            toast: true,
-            position: 'top-end',
             icon: 'error',
-            title: 'Error cargando detalle de propiedad',
-            showConfirmButton: false,
-            timer: 3000
+            title: 'Error',
+            text: 'Error cargando detalle de propiedad',
+            confirmButtonColor: '#0d6efd',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            customClass: {
+                popup: 'swal-dark-theme'
+            }
         });
     }
 }
@@ -393,14 +410,19 @@ async function verDetallePropiedad(id) {
 // Eliminar propiedad
 async function eliminarPropiedad(id) {
     const result = await Swal.fire({
+        icon: 'warning',
         title: '¿Eliminar propiedad?',
         text: 'Esta acción no se puede deshacer',
-        icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
+        confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
+        cancelButtonText: 'Cancelar',
+        background: '#1a1a1a',
+        color: '#ffffff',
+        customClass: {
+            popup: 'swal-dark-theme'
+        }
     });
     
     if (result.isConfirmed) {
@@ -412,13 +434,17 @@ async function eliminarPropiedad(id) {
             const data = await response.json();
             
             if (data.success) {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
+                await Swal.fire({
                     icon: 'success',
-                    title: 'Propiedad eliminada exitosamente',
+                    title: 'Eliminada',
+                    text: 'Propiedad eliminada exitosamente',
+                    timer: 2000,
                     showConfirmButton: false,
-                    timer: 3000
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    customClass: {
+                        popup: 'swal-dark-theme'
+                    }
                 });
                 cargarPropiedades(propiedadesPaginaActual);
             } else {
@@ -522,12 +548,15 @@ async function gestionarCaracteristicas(propiedadId) {
     } catch (error) {
         console.error('Error:', error);
         Swal.fire({
-            toast: true,
-            position: 'top-end',
             icon: 'error',
-            title: error.message,
-            showConfirmButton: false,
-            timer: 3000
+            title: 'Error',
+            text: error.message,
+            confirmButtonColor: '#0d6efd',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            customClass: {
+                popup: 'swal-dark-theme'
+            }
         });
     }
 }
@@ -553,28 +582,35 @@ async function agregarCaracteristica(event, propiedadId) {
         const data = await response.json();
         
         if (data.success) {
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
+            await Swal.fire({
                 icon: 'success',
-                title: 'Característica agregada',
+                title: '¡Éxito!',
+                text: 'Característica agregada',
+                timer: 1500,
                 showConfirmButton: false,
-                timer: 2000
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
             });
             // Recargar el modal
-            setTimeout(() => gestionarCaracteristicas(propiedadId), 2000);
+            gestionarCaracteristicas(propiedadId);
         } else {
             throw new Error(data.message || 'Error agregando característica');
         }
     } catch (error) {
         console.error('Error:', error);
         Swal.fire({
-            toast: true,
-            position: 'top-end',
             icon: 'error',
-            title: error.message,
-            showConfirmButton: false,
-            timer: 3000
+            title: 'Error',
+            text: error.message,
+            confirmButtonColor: '#0d6efd',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            customClass: {
+                popup: 'swal-dark-theme'
+            }
         });
     }
 }
@@ -582,14 +618,19 @@ async function agregarCaracteristica(event, propiedadId) {
 // Eliminar característica
 async function eliminarCaracteristica(idc, propiedadId) {
     const confirmacion = await Swal.fire({
+        icon: 'warning',
         title: '¿Eliminar característica?',
         text: 'Esta acción no se puede deshacer',
-        icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
+        cancelButtonText: 'Cancelar',
+        background: '#1a1a1a',
+        color: '#ffffff',
+        customClass: {
+            popup: 'swal-dark-theme'
+        }
     });
     
     if (confirmacion.isConfirmed) {
@@ -601,28 +642,35 @@ async function eliminarCaracteristica(idc, propiedadId) {
             const data = await response.json();
             
             if (data.success) {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
+                await Swal.fire({
                     icon: 'success',
-                    title: 'Característica eliminada',
+                    title: 'Eliminada',
+                    text: 'Característica eliminada',
+                    timer: 1500,
                     showConfirmButton: false,
-                    timer: 2000
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    customClass: {
+                        popup: 'swal-dark-theme'
+                    }
                 });
                 // Recargar el modal con las características actualizadas
-                setTimeout(() => gestionarCaracteristicas(propiedadId), 2000);
+                gestionarCaracteristicas(propiedadId);
             } else {
                 throw new Error(data.message || 'Error eliminando característica');
             }
         } catch (error) {
             console.error('Error:', error);
             Swal.fire({
-                toast: true,
-                position: 'top-end',
                 icon: 'error',
-                title: error.message,
-                showConfirmButton: false,
-                timer: 3000
+                title: 'Error',
+                text: error.message,
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
             });
         }
     }

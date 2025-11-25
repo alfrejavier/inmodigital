@@ -43,7 +43,7 @@ class Venta extends BaseModel {
             let sql = `
                 SELECT 
                     v.*,
-                    p.tipo as tipo_propiedad,
+                    p.tipo_propiedad,
                     p.ubicacion,
                     p.ciudad,
                     p.depto,

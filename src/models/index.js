@@ -5,6 +5,7 @@ const Venta = require('./Venta');
 const Foto = require('./Foto');
 const Caracteristica = require('./Caracteristica');
 const Usuario = require('./Usuario');
+const Producto = require('./Producto');
 
 // Crear instancias de los modelos
 const propietario = new Propietario();
@@ -23,6 +24,7 @@ module.exports = {
     Foto,
     Caracteristica,
     Usuario,
+    Producto,
     // Instancias listas para usar
     propietario,
     cliente,

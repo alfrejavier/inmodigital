@@ -48,7 +48,8 @@ app.get('/', (req, res) => {
             propiedades: '/api/propiedades',
             ventas: '/api/ventas',
             fotos: '/api/fotos',
-            caracteristicas: '/api/caracteristicas'
+            caracteristicas: '/api/caracteristicas',
+            productos: '/api/productos'
         }
     });
 });
@@ -79,7 +80,8 @@ const {
     propiedadesRoutes,
     ventasRoutes,
     fotosRoutes,
-    caracteristicasRoutes
+    caracteristicasRoutes,
+    productosRoutes
 } = require('./routes');
 const authRoutes = require('./routes/auth');
 
@@ -91,6 +93,7 @@ app.use('/api/propiedades', propiedadesRoutes);
 app.use('/api/ventas', ventasRoutes);
 app.use('/api/fotos', fotosRoutes);
 app.use('/api/caracteristicas', caracteristicasRoutes);
+app.use('/api/productos', productosRoutes);
 
 // Middleware de manejo de errores 404
 app.use('*', (req, res) => {

@@ -35,18 +35,18 @@ class Utils {
                 icon: swalType,
                 timer: duration,
                 timerProgressBar: true,
-                showConfirmButton: false,
-                toast: true,
-                position: 'top-end',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                toast: false,
+                position: 'center',
                 background: '#1a1a1a',
                 color: '#ffffff',
+                confirmButtonColor: type === 'success' ? '#28a745' : (type === 'danger' ? '#dc3545' : '#0d6efd'),
                 customClass: {
-                    popup: 'swal-dark-theme'
+                    popup: 'swal-dark-theme',
+                    confirmButton: 'btn btn-primary'
                 },
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer)
-                    toast.addEventListener('mouseleave', Swal.resumeTimer)
-                }
+                buttonsStyling: false
             });
             
         } catch (error) {

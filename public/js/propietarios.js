@@ -71,7 +71,17 @@ class PropietariosManager {
             // Asegurar que propietarios sea un array vacío en caso de error
             this.propietarios = [];
             
-            Utils.showError('Error al cargar propietarios: ' + error.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al cargar propietarios',
+                text: error.message,
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
             
             // Mostrar mensaje en la tabla
             const tableBody = document.getElementById('propietarios-table');
@@ -280,7 +290,17 @@ class PropietariosManager {
                 Utils.showModal('propietarioModal');
             }
         } catch (error) {
-            Utils.showError('Error al cargar propietario: ' + error.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo cargar la información del propietario: ' + error.message,
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
         }
     }
 
@@ -416,7 +436,17 @@ class PropietariosManager {
                 Utils.showModal('viewPropietarioModal');
             }
         } catch (error) {
-            Utils.showAlert('Error al cargar propietario: ' + error.message, 'danger');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al cargar propietario: ' + error.message,
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
         }
     }
 
@@ -434,52 +464,53 @@ class PropietariosManager {
             const propietario = response.data;
             const nombreCompleto = `${propietario.nombre} ${propietario.apellido1} ${propietario.apellido2 || ''}`.trim();
             
-            // Mostrar confirmación con información detallada del propietario
-            let confirmed = false;
-            if (typeof Utils !== 'undefined' && Utils.confirmDialog) {
-                confirmed = await Utils.confirmDialog(
-                '⚠️ Confirmar Eliminación de Propietario',
-                `
-                <div class="text-center mb-3">
-                    <i class="fas fa-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
-                </div>
-                <p><strong>¿Está seguro que desea eliminar este propietario?</strong></p>
-                <div class="alert alert-info">
-                    <strong>Propietario:</strong> ${nombreCompleto}<br>
-                    <strong>Documento:</strong> ${propietario.documento}<br>
-                    ${propietario.cel ? `<strong>Celular:</strong> ${propietario.cel}<br>` : ''}
-                    ${propietario.tel ? `<strong>Teléfono:</strong> ${propietario.tel}<br>` : ''}
-                    ${propietario.correo ? `<strong>Correo:</strong> ${propietario.correo}` : ''}
-                </div>
-                <div class="alert alert-warning">
-                    <i class="fas fa-info-circle"></i>
-                    <strong>Importante:</strong> Se verificará automáticamente si el propietario tiene propiedades asociadas.
-                </div>
-                <p class="text-danger">
-                    <small>
-                        <i class="fas fa-exclamation-circle"></i> 
-                        Esta acción no se puede deshacer y eliminará permanentemente toda la información del propietario.
-                    </small>
-                </p>
+            // Mostrar confirmación con SweetAlert2
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: '¿Eliminar propietario?',
+                html: `
+                    <div class="text-start">
+                        <p><strong>Propietario:</strong> ${nombreCompleto}</p>
+                        <p><strong>Documento:</strong> ${propietario.documento}</p>
+                        ${propietario.cel ? `<p><strong>Celular:</strong> ${propietario.cel}</p>` : ''}
+                        ${propietario.tel ? `<p><strong>Teléfono:</strong> ${propietario.tel}</p>` : ''}
+                        ${propietario.correo ? `<p><strong>Correo:</strong> ${propietario.correo}</p>` : ''}
+                        <hr>
+                        <p class="text-muted"><i class="fas fa-info-circle"></i> Se verificará automáticamente si el propietario tiene propiedades asociadas.</p>
+                        <p class="text-danger"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
                 `,
-                'Sí, eliminar propietario',
-                'Cancelar'
-                );
-            } else {
-                confirmed = confirm('¿Está seguro que desea eliminar este propietario?');
-            }
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
 
-            if (!confirmed) return;
+            if (!result.isConfirmed) return;
 
             // Proceder con la eliminación
             const deleteResponse = await api.deletePropietario(documento);
             
             if (deleteResponse.success) {
-                if (typeof Utils !== 'undefined' && Utils.showAlert) {
-                    Utils.showAlert('Propietario eliminado exitosamente', 'success');
-                } else {
-                    alert('Propietario eliminado exitosamente');
-                }
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Eliminado',
+                    text: 'Propietario eliminado exitosamente',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    customClass: {
+                        popup: 'swal-dark-theme'
+                    }
+                });
+                
                 // Cerrar modal si está abierto
                 const modal = document.getElementById('viewPropietarioModal');
                 if (modal) {
@@ -504,11 +535,17 @@ class PropietariosManager {
                 errorMessage = 'No se puede eliminar el propietario porque tiene registros asociados en el sistema.';
             }
             
-            if (typeof Utils !== 'undefined' && Utils.showAlert) {
-                Utils.showAlert(`Error al eliminar propietario: ${errorMessage}`, 'danger');
-            } else {
-                alert(`Error al eliminar propietario: ${errorMessage}`);
-            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage,
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
         }
     }
 
@@ -533,13 +570,19 @@ class PropietariosManager {
 
         // Validaciones adicionales
         if (data.correo && !Utils.isValidEmail(data.correo)) {
-            Utils.showError('Por favor ingrese un email válido', 'propietarioError');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de validación',
+                text: 'Por favor ingrese un email válido',
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
             return;
         }
-
-        // Ocultar alertas previas
-        Utils.hideAlert('propietarioError');
-        Utils.hideAlert('propietarioSuccess');
 
         // Deshabilitar botón
         const saveBtn = document.querySelector('#propietarioModal .btn-primary');
@@ -559,21 +602,37 @@ class PropietariosManager {
             }
 
             if (response.success) {
-                Utils.showSuccess(
-                    `Propietario ${this.currentPropietario ? 'actualizado' : 'creado'} exitosamente`,
-                    'propietarioSuccess'
-                );
+                Utils.hideModal('propietarioModal');
+                this.loadPropietarios();
                 
-                setTimeout(() => {
-                    Utils.hideModal('propietarioModal');
-                    this.loadPropietarios();
-                }, 1500);
+                await Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: `Propietario ${this.currentPropietario ? 'actualizado' : 'creado'} exitosamente`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    customClass: {
+                        popup: 'swal-dark-theme'
+                    }
+                });
             } else {
                 throw new Error(response.message || 'Error al guardar propietario');
             }
             
         } catch (error) {
-            Utils.showError(error.message, 'propietarioError');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Error al guardar el propietario',
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
         } finally {
             // Rehabilitar botón
             saveBtn.innerHTML = originalText;

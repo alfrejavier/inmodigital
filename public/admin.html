@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración - InmoDigital</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="css/admin.css" rel="stylesheet">
     <link href="css/sweetalert2-dark.css" rel="stylesheet">
@@ -60,6 +62,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#ventas" onclick="showSection('ventas')">
                             <i class="fas fa-handshake"></i> Ventas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#productos" onclick="showSection('productos')">
+                            <i class="fas fa-box"></i> Productos
                         </a>
                     </li>
                 </ul>
@@ -536,6 +543,104 @@
             </div>
         </section>
 
+        <!-- Sección de Productos -->
+        <section id="productos" class="content-section d-none">
+            <div class="container-fluid">
+                <div class="row mb-4">
+                    <div class="col-12 d-flex justify-content-between align-items-center">
+                        <h1><i class="fas fa-box"></i> Productos</h1>
+                        <button class="btn btn-primary" onclick="nuevoProducto()">
+                            <i class="fas fa-plus"></i> Nuevo Producto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroCategoria" onchange="cargarProductos()">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroMarca" onchange="cargarProductos()">
+                            <option value="">Todas las marcas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="filtroEstadoProducto" onchange="cargarProductos()">
+                            <option value="">Todos los estados</option>
+                            <option value="activo">Activo</option>
+                            <option value="inactivo">Inactivo</option>
+                            <option value="descontinuado">Descontinuado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="filtroDisponible" onchange="cargarProductos()">
+                            <option value="">Disponibilidad</option>
+                            <option value="1">Disponibles</option>
+                            <option value="0">No disponibles</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltrosProductos()">
+                            <i class="fas fa-times"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-10">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="buscarProducto" 
+                                   placeholder="Buscar por nombre, marca, código..." 
+                                   onkeyup="cargarProductos()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-warning w-100" onclick="verProductosStockBajo()">
+                            <i class="fas fa-exclamation-triangle"></i> Stock Bajo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla de productos -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Imagen</th>
+                                                <th>Nombre</th>
+                                                <th>Marca</th>
+                                                <th>Precio</th>
+                                                <th>Stock</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tablaProductos">
+                                            <tr>
+                                                <td colspan="7" class="text-center">
+                                                    <div class="spinner-border" role="status">
+                                                        <span class="visually-hidden">Cargando...</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="perfil" class="content-section d-none">
             <div class="container-fluid">
                 <div class="row">
@@ -572,7 +677,7 @@
                                     <label for="documento" class="form-label">
                                         Documento <span class="text-danger">*</span>
                                     </label>
-                                    <input type="text" class="form-control" id="documento" name="documento" required>
+                                    <input type="number" class="form-control" id="documento" name="documento" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -606,13 +711,13 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="tel" class="form-label">Teléfono</label>
-                                    <input type="tel" class="form-control" id="tel" name="tel">
+                                    <input type="number" class="form-control" id="tel" name="tel">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="cel" class="form-label">Celular</label>
-                                    <input type="tel" class="form-control" id="cel" name="cel">
+                                    <input type="number" class="form-control" id="cel" name="cel">
                                 </div>
                             </div>
                         </div>
@@ -792,7 +897,8 @@
                                     <label for="documento_cliente" class="form-label">
                                         Documento <span class="text-danger">*</span>
                                     </label>
-                                    <input type="text" class="form-control" id="documento" name="documento" required>
+                                    <input type="number" class="form-control" id="documento" name="documento" 
+                                           placeholder="Ej: 1234567890" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -800,7 +906,8 @@
                                     <label for="nombre_cliente" class="form-label">
                                         Nombre <span class="text-danger">*</span>
                                     </label>
-                                    <input type="text" class="form-control" id="nombre" name="nombre" required>
+                                    <input type="text" class="form-control" id="nombre" name="nombre" 
+                                           placeholder="Ej: Juan Carlos" required>
                                 </div>
                             </div>
                         </div>
@@ -808,16 +915,20 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="apellido_cliente" class="form-label">Apellido</label>
+                                    <label for="apellido_cliente" class="form-label">
+                                        Apellido <span class="text-danger">*</span>
+                                    </label>
                                     <input type="text" class="form-control" id="apellido" name="apellido" 
-                                           placeholder="Ej: González, Pérez">
+                                           placeholder="Ej: González Pérez" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="cel_cliente" class="form-label">Celular</label>
-                                    <input type="tel" class="form-control" id="cel" name="cel" 
-                                           placeholder="Ej: 3001234567">
+                                    <label for="cel_cliente" class="form-label">
+                                        Celular <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" class="form-control" id="cel" name="cel" 
+                                           placeholder="Ej: 3001234567" required>
                                 </div>
                             </div>
                         </div>
@@ -863,7 +974,7 @@
                                 <label for="propiedades_id" class="form-label">
                                     <i class="fas fa-home"></i> Propiedad <span class="text-danger">*</span>
                                 </label>
-                                <select class="form-select" id="propiedades_id" name="propiedades_id" required>
+                                <select class="form-select select2" id="propiedades_id" name="propiedades_id" required>
                                     <option value="">Seleccione una propiedad...</option>
                                 </select>
                                 <small class="text-muted">Solo propiedades disponibles para venta/arriendo</small>
@@ -874,7 +985,7 @@
                                 <label for="clientes_documento" class="form-label">
                                     <i class="fas fa-user"></i> Cliente <span class="text-danger">*</span>
                                 </label>
-                                <select class="form-select" id="clientes_documento" name="clientes_documento" required>
+                                <select class="form-select select2" id="clientes_documento" name="clientes_documento" required>
                                     <option value="">Seleccione un cliente...</option>
                                 </select>
                             </div>
@@ -933,18 +1044,130 @@
         </div>
     </div>
 
+    <!-- Producto Modal -->
+    <div class="modal fade" id="productoModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-box"></i>
+                        <span id="producto-modal-title">Nuevo Producto</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productoForm">
+                        <input type="hidden" id="id_producto" name="id_producto">
+                        
+                        <!-- Información básica -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-info-circle"></i> Información Básica</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nombre_producto" class="form-label">
+                                    Nombre <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="nombre_producto" name="nombre" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="marca" class="form-label">Marca</label>
+                                <input type="text" class="form-control" id="marca" name="marca">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="proveedor" class="form-label">Proveedor</label>
+                                <input type="text" class="form-control" id="proveedor" name="proveedor">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="descripcion" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Precio e Inventario -->
+                        <h6 class="border-bottom pb-2 mb-3 mt-3"><i class="fas fa-dollar-sign"></i> Precio e Inventario</h6>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="precio_producto" class="form-label">
+                                    Precio Venta <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="precio_producto" name="precio" 
+                                       min="0" step="0.01" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="costo_compra" class="form-label">Costo Compra</label>
+                                <input type="number" class="form-control" id="costo_compra" name="costo_compra" 
+                                       min="0" step="0.01">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="cantidad_producto" class="form-label">
+                                    Stock Actual <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="cantidad_producto" name="cantidad" 
+                                       min="0" required value="0">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="stock_minimo" class="form-label">Stock Mínimo</label>
+                                <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" 
+                                       min="0" value="1">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="codigo_barras" class="form-label">Código de Barras / SKU</label>
+                                <input type="text" class="form-control" id="codigo_barras" name="codigo_barras">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="imagen_producto" class="form-label">Imagen del Producto</label>
+                                <input type="file" class="form-control" id="imagen_producto" name="imagen" 
+                                       accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                                <small class="text-muted">Formatos: JPG, PNG, GIF, WEBP. Máximo 5MB</small>
+                                <div id="preview_imagen" class="mt-2"></div>
+                            </div>
+                        </div>                        <!-- Estado -->
+                        <h6 class="border-bottom pb-2 mb-3 mt-3"><i class="fas fa-toggle-on"></i> Estado</h6>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="estado_producto" class="form-label">
+                                    Estado <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="estado_producto" name="estado" required>
+                                    <option value="activo">Activo</option>
+                                    <option value="inactivo">Inactivo</option>
+                                    <option value="descontinuado">Descontinuado</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div id="productoError" class="alert alert-danger d-none"></div>
+                        <div id="productoSuccess" class="alert alert-success d-none"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarProducto()">
+                        <i class="fas fa-save"></i> <span id="producto-save-btn-text">Guardar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="js/sweetalert2.min.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/propietarios.js"></script>
-    <script src="js/clientes.js"></script>
-    <script src="js/propiedades.js"></script>
-    <script src="js/fotos.js"></script>
-    <script src="js/ventas.js"></script>
+    <script src="js/config.js?v=4"></script>
+    <script src="js/utils.js?v=4"></script>
+    <script src="js/api.js?v=4"></script>
+    <script src="js/auth.js?v=4"></script>
+    <script src="js/propietarios.js?v=4"></script>
+    <script src="js/clientes.js?v=4"></script>
+    <script src="js/propiedades.js?v=4"></script>
+    <script src="js/ventas.js?v=7"></script>
+    <script src="js/productos.js?v=1"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>

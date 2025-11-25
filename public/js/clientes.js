@@ -8,7 +8,7 @@ class ClientesManager {
         this.isLoading = false;
         this.searchTimeout = null; // Para debounce de búsqueda
         this.currentClienteId = null; // Para edición
-        this.init();
+        // No llamar init() aquí, se llamará después
     }
 
     /**
@@ -20,7 +20,11 @@ class ClientesManager {
             this.setupEventListeners();
         } catch (error) {
             console.error('Error al inicializar ClientesManager:', error);
-            Utils.showAlert('Error al inicializar la gestión de clientes', 'danger');
+            if (typeof Utils !== 'undefined' && Utils.showAlert) {
+                Utils.showAlert('Error al inicializar la gestión de clientes', 'danger');
+            } else {
+                console.error('Utils no está disponible para mostrar alerta');
+            }
         }
     }
 
@@ -99,7 +103,18 @@ class ClientesManager {
 
         } catch (error) {
             console.error('Error al cargar clientes:', error);
-            Utils.showAlert(`Error al cargar clientes: ${error.message}`, 'danger');
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al cargar clientes',
+                text: error.message,
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
             
             // En caso de error, inicializar array vacío
             this.clientes = [];
@@ -365,24 +380,26 @@ class ClientesManager {
             if (response.success) {
                 const action = this.currentClienteId ? 'actualizado' : 'creado';
                 
-                // Debug: Verificar que Utils esté disponible
-                console.log('Utils disponible:', typeof Utils);
-                console.log('Utils.showAlert disponible:', typeof Utils.showAlert);
-                
-                try {
-                    Utils.showAlert(`Cliente ${action} exitosamente`, 'success');
-                } catch (alertError) {
-                    console.error('Error con Utils.showAlert:', alertError);
-                    // Fallback: usar alert nativo
-                    alert(`Cliente ${action} exitosamente`);
-                }
-                
                 // Cerrar modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('clienteModal'));
-                modal.hide();
+                if (modal) modal.hide();
                 
                 // Recargar lista
                 await this.loadClientes();
+                
+                // Mostrar mensaje de éxito
+                await Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: `Cliente ${action} exitosamente`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    customClass: {
+                        popup: 'swal-dark-theme'
+                    }
+                });
             } else {
                 throw new Error(response.message || 'Error al guardar cliente');
             }
@@ -431,12 +448,22 @@ class ClientesManager {
 
         } catch (error) {
             console.error('Error al cargar cliente:', error);
-            Utils.showAlert(`Error al cargar cliente: ${error.message}`, 'danger');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo cargar la información del cliente: ' + error.message,
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
         }
     }
 
     /**
-     * Ver detalles de un cliente
+     * Ver detalles del cliente
      */
     async viewCliente(documento) {
         try {
@@ -450,7 +477,17 @@ class ClientesManager {
 
         } catch (error) {
             console.error('Error al cargar cliente:', error);
-            Utils.showAlert(`Error al cargar cliente: ${error.message}`, 'danger');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al cargar cliente: ' + error.message,
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
         }
     }
 
@@ -470,47 +507,51 @@ class ClientesManager {
             const cliente = clienteResponse.data;
             const nombreCompleto = `${cliente.nombre} ${cliente.apellido || ''}`.trim();
             
-            // Mostrar confirmación con información detallada del cliente
-            let confirmed = false;
-            if (typeof Utils !== 'undefined' && Utils.confirmDialog) {
-                confirmed = await Utils.confirmDialog(
-                '⚠️ Confirmar Eliminación de Cliente',
-                `
-                <div class="text-center mb-3">
-                    <i class="fas fa-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
-                </div>
-                <p><strong>¿Está seguro que desea eliminar este cliente?</strong></p>
-                <div class="alert alert-info">
-                    <strong>Cliente:</strong> ${nombreCompleto}<br>
-                    <strong>Documento:</strong> ${cliente.documento}<br>
-                    ${cliente.cel ? `<strong>Celular:</strong> ${cliente.cel}<br>` : ''}
-                    ${cliente.correo ? `<strong>Correo:</strong> ${cliente.correo}` : ''}
-                </div>
-                <p class="text-danger">
-                    <small>
-                        <i class="fas fa-exclamation-circle"></i> 
-                        Esta acción no se puede deshacer y eliminará permanentemente toda la información del cliente.
-                    </small>
-                </p>
+            // Mostrar confirmación con SweetAlert2
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: '¿Eliminar cliente?',
+                html: `
+                    <div class="text-start">
+                        <p><strong>Cliente:</strong> ${nombreCompleto}</p>
+                        <p><strong>Documento:</strong> ${cliente.documento}</p>
+                        ${cliente.cel ? `<p><strong>Celular:</strong> ${cliente.cel}</p>` : ''}
+                        ${cliente.correo ? `<p><strong>Correo:</strong> ${cliente.correo}</p>` : ''}
+                        <hr>
+                        <p class="text-danger"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
                 `,
-                'Sí, eliminar cliente',
-                'Cancelar'
-                );
-            } else {
-                confirmed = confirm('¿Está seguro que desea eliminar este cliente?');
-            }
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
 
-            if (!confirmed) return;
+            if (!result.isConfirmed) return;
 
             // Proceder con la eliminación usando el método correcto
             const response = await api.deleteCliente(documento);
             
             if (response.success) {
-                if (typeof Utils !== 'undefined' && Utils.showAlert) {
-                    Utils.showAlert('Cliente eliminado exitosamente', 'success');
-                } else {
-                    alert('Cliente eliminado exitosamente');
-                }
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Eliminado',
+                    text: 'Cliente eliminado exitosamente',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    customClass: {
+                        popup: 'swal-dark-theme'
+                    }
+                });
+                
                 // Cerrar modal si está abierto
                 const modal = document.getElementById('viewClienteModal');
                 if (modal) {
@@ -533,11 +574,17 @@ class ClientesManager {
                 errorMessage = 'No se puede eliminar el cliente porque tiene registros asociados (ventas, propiedades, etc.)';
             }
             
-            if (typeof Utils !== 'undefined' && Utils.showAlert) {
-                Utils.showAlert(`Error al eliminar cliente: ${errorMessage}`, 'danger');
-            } else {
-                alert(`Error al eliminar cliente: ${errorMessage}`);
-            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage,
+                confirmButtonColor: '#0d6efd',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark-theme'
+                }
+            });
         }
     }
 
@@ -751,7 +798,25 @@ function loadClientes() {
 
 // Instancia global
 const clientesManager = new ClientesManager();
-console.log('✅ ClientesManager inicializado:', clientesManager);
+console.log('✅ ClientesManager instanciado:', clientesManager);
 
 // También disponible globalmente para onclick
 window.clientesManager = clientesManager;
+
+// Inicializar cuando el DOM esté listo y Utils esté disponible
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof Utils !== 'undefined') {
+            clientesManager.init();
+        } else {
+            console.error('❌ Utils no está disponible al inicializar ClientesManager');
+        }
+    });
+} else {
+    // DOM ya cargado
+    if (typeof Utils !== 'undefined') {
+        clientesManager.init();
+    } else {
+        console.error('❌ Utils no está disponible al inicializar ClientesManager');
+    }
+}

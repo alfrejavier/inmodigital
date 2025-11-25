@@ -4,6 +4,7 @@ const propiedadesRoutes = require('./propiedades');
 const ventasRoutes = require('./ventas');
 const fotosRoutes = require('./fotos');
 const caracteristicasRoutes = require('./caracteristicas');
+const productosRoutes = require('./productos');
 
 module.exports = {
     propietariosRoutes,
@@ -11,5 +12,6 @@ module.exports = {
     propiedadesRoutes,
     ventasRoutes,
     fotosRoutes,
-    caracteristicasRoutes
+    caracteristicasRoutes,
+    productosRoutes
 };
